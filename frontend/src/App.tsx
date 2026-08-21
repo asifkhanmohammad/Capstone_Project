@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { AuthProvider } from './context/AuthContext';
+import { ProtectedRoute } from './components/auth/ProtectedRoute';
 import { Navbar } from './components/layout/Navbar';
 import { Sidebar } from './components/layout/Sidebar';
 import { LandingPage } from './pages/LandingPage';
@@ -15,7 +17,7 @@ import { ServiceRequests } from './pages/student/ServiceRequests';
 import { NotificationsPage } from './pages/student/NotificationsPage';
 import { FeedbackPage } from './pages/student/FeedbackPage';
 
-// Staff Pages
+// Staff / Faculty Pages
 import { StaffDashboard } from './pages/staff/StaffDashboard';
 import { AssignedComplaints } from './pages/staff/AssignedComplaints';
 
@@ -60,43 +62,157 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
 export const App: React.FC = () => {
   return (
-    <Router>
-      <AppLayout>
-        <Routes>
-          {/* Public Routes */}
-          <Route path="/" element={<LandingPage />} />
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/register" element={<RegisterPage />} />
+    <AuthProvider>
+      <Router>
+        <AppLayout>
+          <Routes>
+            {/* Public Routes */}
+            <Route path="/" element={<LandingPage />} />
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/register" element={<RegisterPage />} />
 
-          {/* Shared Complaint Details */}
-          <Route path="/complaints/:id" element={<ComplaintDetails />} />
+            {/* Shared Complaint Details */}
+            <Route
+              path="/complaints/:id"
+              element={
+                <ProtectedRoute>
+                  <ComplaintDetails />
+                </ProtectedRoute>
+              }
+            />
 
-          {/* Student Routes */}
-          <Route path="/student" element={<StudentDashboard />} />
-          <Route path="/student/submit" element={<SubmitComplaint />} />
-          <Route path="/student/complaints" element={<MyComplaints />} />
-          <Route path="/student/services" element={<ServiceRequests />} />
-          <Route path="/student/notifications" element={<NotificationsPage />} />
-          <Route path="/student/feedback" element={<FeedbackPage />} />
+            {/* Student Protected Routes */}
+            <Route
+              path="/student"
+              element={
+                <ProtectedRoute allowedRoles={['student']}>
+                  <StudentDashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/student/submit"
+              element={
+                <ProtectedRoute allowedRoles={['student']}>
+                  <SubmitComplaint />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/student/complaints"
+              element={
+                <ProtectedRoute allowedRoles={['student']}>
+                  <MyComplaints />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/student/services"
+              element={
+                <ProtectedRoute allowedRoles={['student']}>
+                  <ServiceRequests />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/student/notifications"
+              element={
+                <ProtectedRoute allowedRoles={['student']}>
+                  <NotificationsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/student/feedback"
+              element={
+                <ProtectedRoute allowedRoles={['student']}>
+                  <FeedbackPage />
+                </ProtectedRoute>
+              }
+            />
 
-          {/* Staff Routes */}
-          <Route path="/staff" element={<StaffDashboard />} />
-          <Route path="/staff/assigned" element={<AssignedComplaints />} />
+            {/* Staff / Faculty Protected Routes */}
+            <Route
+              path="/staff"
+              element={
+                <ProtectedRoute allowedRoles={['staff', 'admin']}>
+                  <StaffDashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/staff/assigned"
+              element={
+                <ProtectedRoute allowedRoles={['staff', 'admin']}>
+                  <AssignedComplaints />
+                </ProtectedRoute>
+              }
+            />
 
-          {/* Admin Routes */}
-          <Route path="/admin" element={<AdminDashboard />} />
-          <Route path="/admin/complaints" element={<AllComplaints />} />
-          <Route path="/admin/departments" element={<DepartmentManager />} />
-          <Route path="/admin/staff" element={<StaffManager />} />
-          <Route path="/admin/analytics" element={<AnalyticsPage />} />
-          <Route path="/admin/services" element={<ServiceRequests />} />
-          <Route path="/admin/settings" element={<SettingsPage />} />
+            {/* Admin Protected Routes */}
+            <Route
+              path="/admin"
+              element={
+                <ProtectedRoute allowedRoles={['admin', 'super_admin']}>
+                  <AdminDashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/complaints"
+              element={
+                <ProtectedRoute allowedRoles={['admin', 'super_admin']}>
+                  <AllComplaints />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/departments"
+              element={
+                <ProtectedRoute allowedRoles={['admin', 'super_admin']}>
+                  <DepartmentManager />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/staff"
+              element={
+                <ProtectedRoute allowedRoles={['admin', 'super_admin']}>
+                  <StaffManager />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/analytics"
+              element={
+                <ProtectedRoute allowedRoles={['admin', 'super_admin']}>
+                  <AnalyticsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/services"
+              element={
+                <ProtectedRoute allowedRoles={['admin', 'super_admin']}>
+                  <ServiceRequests />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/settings"
+              element={
+                <ProtectedRoute allowedRoles={['admin', 'super_admin']}>
+                  <SettingsPage />
+                </ProtectedRoute>
+              }
+            />
 
-          {/* Fallback */}
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </AppLayout>
-    </Router>
+            {/* Fallback */}
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </AppLayout>
+      </Router>
+    </AuthProvider>
   );
 };
 
