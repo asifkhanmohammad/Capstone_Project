@@ -20,6 +20,7 @@ import {
   DEMO_PROFILES,
 } from './mockData';
 import { calculateDueAt } from '../utils/slaCalculator';
+import { apiService } from './api';
 
 const STORAGE_KEYS = {
   COMPLAINTS: 'ccsm_complaints_v1',
