@@ -43,8 +43,8 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleSidebar, isSidebarOpen }
     else navigate('/admin');
   };
 
-  const handleResetDemoData = () => {
-    dataService.resetDemoData();
+  const handleResetDemoData = async () => {
+    await dataService.syncWithBackend();
     window.location.reload();
   };
 

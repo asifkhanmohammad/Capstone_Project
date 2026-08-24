@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { useAuth, UserRole } from '../context/AuthContext';
 import { dataService } from '../services/dataService';
+import { apiService } from '../services/api';
 import { RippleButton } from '../components/ui/RippleButton';
 import { ShieldCheck, GraduationCap, UserCheck, Building2, Lock, ArrowRight, AlertCircle, CheckCircle2 } from 'lucide-react';
 
@@ -43,57 +44,21 @@ export const LoginPage: React.FC = () => {
     setIsLoading(true);
 
     try {
-      // Call Express/MongoDB auth API if available, fallback to session initialization
-      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-      const response = await fetch(`${API_URL}/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password, role: activeTab }),
-      });
+      const data = await apiService.login(email, password, activeTab);
+      login(data.user, data.token);
+      dataService.setActiveRole(data.user.role);
+      await dataService.syncWithBackend();
 
-      if (response.ok) {
-        const data = await response.json();
-        login(data.user, data.token);
-        dataService.setActiveRole(data.user.role);
-      } else {
-        // Fallback local session if API backend is offline
-        const fallbackName = email.split('@')[0].replace('.', ' ');
-        const formattedName = fallbackName.charAt(0).toUpperCase() + fallbackName.slice(1);
-        const fallbackUser = {
-          id: `usr-${activeTab}-${Date.now()}`,
-          name: formattedName,
-          email,
-          role: activeTab,
-          department: activeTab === 'staff' ? 'Faculty & Electrical Maintenance' : 'Computer Science & Engineering',
-        };
-        login(fallbackUser, `token_local_${Date.now()}`);
-        dataService.setActiveRole(activeTab);
-      }
-
-      // Navigate to intended destination or role dashboard
       const fromPath = (location.state as { from?: { pathname: string } })?.from?.pathname;
       if (fromPath && !fromPath.includes('/login')) {
         navigate(fromPath);
       } else {
-        if (activeTab === 'student') navigate('/student');
-        else if (activeTab === 'staff') navigate('/staff');
+        if (data.user.role === 'student') navigate('/student');
+        else if (data.user.role === 'staff') navigate('/staff');
         else navigate('/admin');
       }
-    } catch {
-      // Local session fallback
-      const fallbackUser = {
-        id: `usr-${activeTab}-${Date.now()}`,
-        name: activeTab === 'student' ? 'Mohammad Asif Khan' : activeTab === 'staff' ? 'K. Ramesh (Faculty Lead)' : 'Dr. Principal Admin',
-        email,
-        role: activeTab,
-        department: activeTab === 'staff' ? 'Faculty Maintenance' : 'Computer Science',
-      };
-      login(fallbackUser, `token_offline_${Date.now()}`);
-      dataService.setActiveRole(activeTab);
-
-      if (activeTab === 'student') navigate('/student');
-      else if (activeTab === 'staff') navigate('/staff');
-      else navigate('/admin');
+    } catch (err: any) {
+      setErrorMessage(err.message || 'Authentication failed. Please check backend service.');
     } finally {
       setIsLoading(false);
     }

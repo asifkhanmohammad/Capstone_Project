@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { dataService } from '../services/dataService';
+import { apiService } from '../services/api';
 import { RippleButton } from '../components/ui/RippleButton';
 import { ShieldCheck, UserPlus, CheckCircle2 } from 'lucide-react';
 
@@ -12,10 +13,28 @@ export const RegisterPage: React.FC = () => {
   const [phone, setPhone] = useState('');
   const [role, setRole] = useState<'student' | 'staff'>('student');
 
-  const handleRegister = (e: React.FormEvent) => {
+  const [errorMsg, setErrorMsg] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    dataService.setActiveRole(role);
-    navigate(role === 'student' ? '/student' : '/staff');
+    setErrorMsg('');
+    setLoading(true);
+
+    try {
+      const res = await apiService.register({
+        name: fullName,
+        email,
+        role,
+        phone,
+      });
+      dataService.setActiveRole(role);
+      navigate('/login');
+    } catch (err: any) {
+      setErrorMsg(err.message || 'Registration failed');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (

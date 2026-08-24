@@ -7,14 +7,31 @@ import { SlaTimerBadge } from '../../components/ui/SlaTimerBadge';
 import { RippleButton } from '../../components/ui/RippleButton';
 import { Wrench, Clock, AlertTriangle, CheckCircle2, ListOrdered, ArrowRight } from 'lucide-react';
 
+import { Complaint } from '../../types';
+
 export const StaffDashboard: React.FC = () => {
   const navigate = useNavigate();
   const currentUser = dataService.getActiveUser();
-  const allComplaints = dataService.getComplaints();
-  
-  // Filter complaints assigned to this staff member or staff department
+  const [allComplaints, setAllComplaints] = React.useState<Complaint[]>([]);
+  const [loading, setLoading] = React.useState(true);
+
+  React.useEffect(() => {
+    let isMounted = true;
+    dataService.fetchComplaints()
+      .then((data) => {
+        if (isMounted) {
+          setAllComplaints(data);
+          setLoading(false);
+        }
+      })
+      .catch(() => {
+        if (isMounted) setLoading(false);
+      });
+    return () => { isMounted = false; };
+  }, []);
+
   const assignedComplaints = allComplaints.filter(
-    (c) => c.assigned_staff_id === currentUser.id || c.department_id === currentUser.department_id
+    (c) => c.assigned_staff_id === currentUser.id || c.department_id === currentUser.department_id || !c.assigned_staff_id
   );
 
   const pendingCount = assignedComplaints.filter((c) =>

@@ -32,10 +32,29 @@ import {
   Area,
 } from 'recharts';
 
+import { Complaint, Department } from '../../types';
+
 export const AdminDashboard: React.FC = () => {
   const navigate = useNavigate();
-  const complaints = dataService.getComplaints();
-  const departments = dataService.getDepartments();
+  const [complaints, setComplaints] = React.useState<Complaint[]>([]);
+  const [departments, setDepartments] = React.useState<Department[]>([]);
+  const [loading, setLoading] = React.useState(true);
+
+  React.useEffect(() => {
+    let isMounted = true;
+    Promise.all([dataService.fetchComplaints(), dataService.fetchDepartments()])
+      .then(([c, d]) => {
+        if (isMounted) {
+          setComplaints(c);
+          setDepartments(d);
+          setLoading(false);
+        }
+      })
+      .catch(() => {
+        if (isMounted) setLoading(false);
+      });
+    return () => { isMounted = false; };
+  }, []);
 
   // Metrics Calculations
   const totalCount = complaints.length;

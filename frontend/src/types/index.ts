@@ -71,6 +71,7 @@ export interface Complaint {
   updated_at: string;
   resolved_at?: string;
   closed_at?: string;
+  timeline?: TimelineEvent[];
 }
 
 export interface TimelineEvent {

@@ -13,8 +13,26 @@ import {
   Area,
 } from 'recharts';
 
+import { Complaint } from '../../types';
+
 export const AnalyticsPage: React.FC = () => {
-  const complaints = dataService.getComplaints();
+  const [complaints, setComplaints] = React.useState<Complaint[]>([]);
+  const [loading, setLoading] = React.useState(true);
+
+  React.useEffect(() => {
+    let isMounted = true;
+    dataService.fetchComplaints()
+      .then((data) => {
+        if (isMounted) {
+          setComplaints(data);
+          setLoading(false);
+        }
+      })
+      .catch(() => {
+        if (isMounted) setLoading(false);
+      });
+    return () => { isMounted = false; };
+  }, []);
 
   const locationCounts: Record<string, number> = {};
   complaints.forEach((c) => {

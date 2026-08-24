@@ -5,25 +5,48 @@ import { RippleButton } from '../../components/ui/RippleButton';
 import { Modal } from '../../components/ui/Modal';
 import { Wrench, Plus, Clock, CheckCircle2, Calendar, MapPin } from 'lucide-react';
 
+import { ServiceRequest } from '../../types';
+
 export const ServiceRequests: React.FC = () => {
-  const [services, setServices] = useState(() => dataService.getServiceRequests());
+  const [services, setServices] = useState<ServiceRequest[]>([]);
+  const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [serviceType, setServiceType] = useState('Seminar Hall Audio-Visual Setup');
   const [location, setLocation] = useState('CS Block Auditorium');
   const [description, setDescription] = useState('');
   const [preferredSlot, setPreferredSlot] = useState('2026-08-22 14:00 - 16:00');
 
-  const handleCreate = (e: React.FormEvent) => {
+  const loadData = React.useCallback(async () => {
+    setLoading(true);
+    try {
+      const data = await dataService.fetchServiceRequests();
+      setServices(data);
+    } catch (err) {
+      console.error('Failed to load service requests:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  React.useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
-    const newReq = dataService.createServiceRequest({
-      service_type: serviceType,
-      location,
-      description,
-      preferred_slot: preferredSlot,
-    });
-    setServices(dataService.getServiceRequests());
-    setShowModal(false);
-    setDescription('');
+    try {
+      await dataService.createServiceRequest({
+        service_type: serviceType,
+        location,
+        description,
+        preferred_slot: preferredSlot,
+      });
+      await loadData();
+      setShowModal(false);
+      setDescription('');
+    } catch (err: any) {
+      alert(err.message || 'Failed to submit service request');
+    }
   };
 
   return (

@@ -16,11 +16,28 @@ import {
   Sparkles,
 } from 'lucide-react';
 
+import { Complaint } from '../../types';
+
 export const StudentDashboard: React.FC = () => {
   const navigate = useNavigate();
   const currentUser = dataService.getActiveUser();
-  const allComplaints = dataService.getComplaints();
-  const studentComplaints = allComplaints.filter((c) => c.student_id === currentUser.id);
+  const [studentComplaints, setStudentComplaints] = React.useState<Complaint[]>([]);
+  const [loading, setLoading] = React.useState(true);
+
+  React.useEffect(() => {
+    let isMounted = true;
+    dataService.fetchComplaints({ student_id: currentUser.id })
+      .then((all) => {
+        if (isMounted) {
+          setStudentComplaints(all.filter((c) => c.student_id === currentUser.id));
+          setLoading(false);
+        }
+      })
+      .catch(() => {
+        if (isMounted) setLoading(false);
+      });
+    return () => { isMounted = false; };
+  }, [currentUser.id]);
 
   const activeCount = studentComplaints.filter((c) =>
     ['submitted', 'verified', 'assigned', 'in_progress', 'reopened'].includes(c.status)

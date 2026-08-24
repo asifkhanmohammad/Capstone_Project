@@ -12,14 +12,31 @@ import { Wrench, CheckCircle2, Clock, Play, MapPin, Eye } from 'lucide-react';
 export const AssignedComplaints: React.FC = () => {
   const navigate = useNavigate();
   const currentUser = dataService.getActiveUser();
-  const [complaints, setComplaints] = useState(() => dataService.getComplaints());
+  const [complaints, setComplaints] = useState<Complaint[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const [selectedTicket, setSelectedTicket] = useState<Complaint | null>(null);
   const [targetStatus, setTargetStatus] = useState<ComplaintStatus>('in_progress');
   const [resolutionComment, setResolutionComment] = useState('');
 
+  const loadComplaints = React.useCallback(async () => {
+    setLoading(true);
+    try {
+      const data = await dataService.fetchComplaints();
+      setComplaints(data);
+    } catch (err) {
+      console.error('Failed to load staff complaints:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  React.useEffect(() => {
+    loadComplaints();
+  }, [loadComplaints]);
+
   const staffTickets = complaints.filter(
-    (c) => c.assigned_staff_id === currentUser.id || c.department_id === currentUser.department_id
+    (c) => c.assigned_staff_id === currentUser.id || c.department_id === currentUser.department_id || !c.assigned_staff_id
   );
 
   const handleOpenUpdateModal = (ticket: Complaint, status: ComplaintStatus) => {
@@ -30,13 +47,17 @@ export const AssignedComplaints: React.FC = () => {
     );
   };
 
-  const handleConfirmStatusChange = (e: React.FormEvent) => {
+  const handleConfirmStatusChange = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedTicket) return;
 
-    dataService.updateComplaintStatus(selectedTicket.id, targetStatus, resolutionComment, false);
-    setComplaints(dataService.getComplaints());
-    setSelectedTicket(null);
+    try {
+      await dataService.updateComplaintStatus(selectedTicket.id, targetStatus, resolutionComment, false);
+      await loadComplaints();
+      setSelectedTicket(null);
+    } catch (err: any) {
+      alert(err.message || 'Failed to update complaint status');
+    }
   };
 
   return (

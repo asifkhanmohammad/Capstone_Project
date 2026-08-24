@@ -22,10 +22,14 @@ import {
   ShieldAlert,
 } from 'lucide-react';
 
+import { Complaint, Feedback, TimelineEvent } from '../../types';
+
 export const ComplaintDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const complaint = dataService.getComplaintById(id || '');
+  const [complaint, setComplaint] = useState<Complaint | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   const [evidenceModalUrl, setEvidenceModalUrl] = useState<string | null>(null);
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
@@ -34,12 +38,40 @@ export const ComplaintDetails: React.FC = () => {
   const [isSatisfied, setIsSatisfied] = useState(true);
   const [commentText, setCommentText] = useState('');
 
-  if (!complaint) {
+  const loadData = React.useCallback(async () => {
+    if (!id) return;
+    setLoading(true);
+    setError('');
+    try {
+      const data = await dataService.fetchComplaintById(id);
+      setComplaint(data);
+      await dataService.fetchFeedback();
+    } catch (err: any) {
+      setError(err.message || 'Failed to fetch complaint from database');
+    } finally {
+      setLoading(false);
+    }
+  }, [id]);
+
+  React.useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  if (loading) {
+    return (
+      <GlassCard className="text-center py-12 space-y-4">
+        <Clock className="w-10 h-10 text-blue-400 animate-spin mx-auto" />
+        <h3 className="text-lg font-semibold text-white">Loading complaint details...</h3>
+      </GlassCard>
+    );
+  }
+
+  if (error || !complaint) {
     return (
       <GlassCard className="text-center py-12 space-y-4">
         <ShieldAlert className="w-12 h-12 text-rose-500 mx-auto" />
         <h3 className="text-xl font-bold text-white">Complaint Order Not Found</h3>
-        <p className="text-xs text-slate-400">The requested complaint ID does not exist or was removed.</p>
+        <p className="text-xs text-slate-400">{error || 'The requested complaint ID does not exist or was removed.'}</p>
         <RippleButton variant="primary" onClick={() => navigate('/student')}>
           Return to Dashboard
         </RippleButton>
@@ -47,7 +79,7 @@ export const ComplaintDetails: React.FC = () => {
     );
   }
 
-  const timelineEvents = dataService.getTimelineEvents(complaint.id);
+  const timelineEvents = complaint.timeline || [];
   const existingFeedback = dataService.getFeedbackForComplaint(complaint.id);
 
   // Workflow Timeline Steps
@@ -81,35 +113,45 @@ export const ComplaintDetails: React.FC = () => {
     return 'pending';
   };
 
-  const handleAddComment = (e: React.FormEvent) => {
+  const handleAddComment = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!commentText.trim()) return;
 
-    dataService.updateComplaintStatus(
-      complaint.id,
-      complaint.status,
-      `Student note: ${commentText}`,
-      false
-    );
-    setCommentText('');
-    window.location.reload();
+    try {
+      await dataService.updateComplaintStatus(
+        complaint.id,
+        complaint.status,
+        `Student note: ${commentText}`,
+        false
+      );
+      setCommentText('');
+      await loadData();
+    } catch (err: any) {
+      alert(err.message || 'Failed to add comment');
+    }
   };
 
-  const handleSubmitFeedbackForm = (e: React.FormEvent) => {
+  const handleSubmitFeedbackForm = async (e: React.FormEvent) => {
     e.preventDefault();
-    dataService.submitFeedback(complaint.id, rating, feedbackComment, isSatisfied);
-    setShowFeedbackModal(false);
-    window.location.reload();
+    try {
+      await dataService.submitFeedback(complaint.id, rating, feedbackComment, isSatisfied);
+      setShowFeedbackModal(false);
+      await loadData();
+    } catch (err: any) {
+      alert(err.message || 'Failed to submit feedback');
+    }
   };
 
-  const handleReopen = () => {
-    dataService.updateComplaintStatus(
-      complaint.id,
-      'reopened',
-      'Student reopened complaint: Issue resolved unsatisfactorily.',
-      false
-    );
-    window.location.reload();
+  const handleReopen = async () => {
+    try {
+      await dataService.reopenComplaint(
+        complaint.id,
+        'Student reopened complaint: Issue resolved unsatisfactorily.'
+      );
+      await loadData();
+    } catch (err: any) {
+      alert(err.message || 'Failed to reopen complaint');
+    }
   };
 
   return (
@@ -283,7 +325,7 @@ export const ComplaintDetails: React.FC = () => {
         </h3>
 
         <div className="space-y-3">
-          {timelineEvents.map((evt) => (
+          {timelineEvents.map((evt: TimelineEvent) => (
             <div key={evt.id} className="p-3.5 rounded-xl border border-slate-800 bg-slate-950/60 text-xs space-y-1">
               <div className="flex items-center justify-between font-semibold">
                 <span className="text-blue-400">{evt.user_name} ({evt.user_role.toUpperCase()})</span>

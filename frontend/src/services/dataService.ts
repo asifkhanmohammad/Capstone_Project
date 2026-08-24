@@ -9,118 +9,168 @@ import {
   PriorityLevel,
   ComplaintCategory,
   UserProfile,
+  UserRole,
 } from '../types';
-import {
-  INITIAL_COMPLAINTS,
-  INITIAL_DEPARTMENTS,
-  INITIAL_TIMELINE,
-  INITIAL_FEEDBACK,
-  INITIAL_NOTIFICATIONS,
-  INITIAL_SERVICES,
-  DEMO_PROFILES,
-} from './mockData';
 import { calculateDueAt } from '../utils/slaCalculator';
 import { apiService } from './api';
 
-const STORAGE_KEYS = {
-  COMPLAINTS: 'ccsm_complaints_v1',
-  DEPARTMENTS: 'ccsm_departments_v1',
-  TIMELINE: 'ccsm_timeline_v1',
-  FEEDBACK: 'ccsm_feedback_v1',
-  NOTIFICATIONS: 'ccsm_notifications_v1',
-  SERVICES: 'ccsm_services_v1',
-  CURRENT_ROLE: 'ccsm_current_role_v1',
+export const DEMO_PROFILES: Record<string, UserProfile> = {
+  student: {
+    id: 'usr-student-1',
+    full_name: 'Mohammad Asif Khan',
+    email: 'asif.khan@student.nriit.edu.in',
+    role: 'student',
+    department_name: 'Computer Science & Engineering',
+    student_id_number: '217W1A0501',
+    created_at: new Date().toISOString(),
+  },
+  staff: {
+    id: 'usr-staff-1',
+    full_name: 'K. Ramesh (Electrical Lead)',
+    email: 'ramesh.elec@nriit.edu.in',
+    role: 'staff',
+    department_name: 'Electrical & Power Maintenance',
+    department_id: 'dept-1',
+    created_at: new Date().toISOString(),
+  },
+  admin: {
+    id: 'usr-admin-1',
+    full_name: 'Dr. Principal Admin',
+    email: 'admin@nriit.edu.in',
+    role: 'admin',
+    department_name: 'Administration',
+    created_at: new Date().toISOString(),
+  },
+  super_admin: {
+    id: 'usr-admin-1',
+    full_name: 'Dr. Principal Admin',
+    email: 'admin@nriit.edu.in',
+    role: 'super_admin',
+    department_name: 'Administration',
+    created_at: new Date().toISOString(),
+  },
 };
 
-function getLocalData<T>(key: string, fallback: T): T {
-  try {
-    const item = localStorage.getItem(key);
-    return item ? JSON.parse(item) : fallback;
-  } catch {
-    return fallback;
-  }
-}
-
-function setLocalData<T>(key: string, data: T): void {
-  try {
-    localStorage.setItem(key, JSON.stringify(data));
-  } catch (err) {
-    console.error('LocalStorage save error:', err);
-  }
-}
-
 class DataService {
-  private complaints: Complaint[];
-  private departments: Department[];
-  private timeline: TimelineEvent[];
-  private feedbackList: Feedback[];
-  private notifications: NotificationItem[];
-  private services: ServiceRequest[];
-  private activeRole: 'student' | 'staff' | 'admin' | 'super_admin';
+  private complaintsCache: Complaint[] = [];
+  private departmentsCache: Department[] = [];
+  private servicesCache: ServiceRequest[] = [];
+  private feedbackCache: Feedback[] = [];
+  private notificationsCache: NotificationItem[] = [];
+  private activeRole: UserRole = 'student';
+  private initialized = false;
 
   constructor() {
-    this.complaints = getLocalData(STORAGE_KEYS.COMPLAINTS, INITIAL_COMPLAINTS);
-    this.departments = getLocalData(STORAGE_KEYS.DEPARTMENTS, INITIAL_DEPARTMENTS);
-    this.timeline = getLocalData(STORAGE_KEYS.TIMELINE, INITIAL_TIMELINE);
-    this.feedbackList = getLocalData(STORAGE_KEYS.FEEDBACK, INITIAL_FEEDBACK);
-    this.notifications = getLocalData(STORAGE_KEYS.NOTIFICATIONS, INITIAL_NOTIFICATIONS);
-    this.services = getLocalData(STORAGE_KEYS.SERVICES, INITIAL_SERVICES);
-    this.activeRole = getLocalData(STORAGE_KEYS.CURRENT_ROLE, 'student');
-
-    // Save defaults if empty
-    setLocalData(STORAGE_KEYS.COMPLAINTS, this.complaints);
-    setLocalData(STORAGE_KEYS.DEPARTMENTS, this.departments);
-    setLocalData(STORAGE_KEYS.TIMELINE, this.timeline);
-    setLocalData(STORAGE_KEYS.FEEDBACK, this.feedbackList);
-    setLocalData(STORAGE_KEYS.NOTIFICATIONS, this.notifications);
-    setLocalData(STORAGE_KEYS.SERVICES, this.services);
+    // Determine active role from logged in user in localStorage session token
+    try {
+      const storedUser = localStorage.getItem('ccsm_auth_user_v1');
+      if (storedUser) {
+        const u = JSON.parse(storedUser);
+        if (u.role) this.activeRole = u.role as UserRole;
+      }
+    } catch {
+      this.activeRole = 'student';
+    }
   }
 
-  // Active User / Role Switcher
-  public getActiveRole() {
+  // Synchronize cache with MongoDB database
+  public async syncWithBackend(): Promise<void> {
+    try {
+      const [complaints, departments, services, feedback] = await Promise.all([
+        apiService.getComplaints().catch(() => []),
+        apiService.getDepartments().catch(() => []),
+        apiService.getServiceRequests().catch(() => []),
+        apiService.getFeedback().catch(() => []),
+      ]);
+
+      this.complaintsCache = complaints;
+      this.departmentsCache = departments;
+      this.servicesCache = services;
+      this.feedbackCache = feedback;
+      this.initialized = true;
+    } catch (err) {
+      console.error('[DataService] Error syncing with Express/MongoDB backend:', err);
+    }
+  }
+
+  // Active User / Role
+  public getActiveRole(): UserRole {
+    try {
+      const storedUser = localStorage.getItem('ccsm_auth_user_v1');
+      if (storedUser) {
+        const u = JSON.parse(storedUser);
+        return u.role || this.activeRole;
+      }
+    } catch {
+      // fallback
+    }
     return this.activeRole;
   }
 
-  public setActiveRole(role: 'student' | 'staff' | 'admin' | 'super_admin') {
+  public setActiveRole(role: UserRole) {
     this.activeRole = role;
-    setLocalData(STORAGE_KEYS.CURRENT_ROLE, role);
   }
 
   public getActiveUser(): UserProfile {
+    try {
+      const storedUser = localStorage.getItem('ccsm_auth_user_v1');
+      if (storedUser) {
+        const u = JSON.parse(storedUser);
+        return {
+          id: u.id || 'usr-student-1',
+          full_name: u.full_name || u.name || 'Mohammad Asif Khan',
+          email: u.email || 'asif.khan@student.nriit.edu.in',
+          role: u.role || 'student',
+          department_name: u.department || u.department_name || 'Computer Science & Engineering',
+          created_at: new Date().toISOString(),
+        };
+      }
+    } catch {
+      // return default
+    }
     return DEMO_PROFILES[this.activeRole] || DEMO_PROFILES.student;
   }
 
-  // Complaints CRUD
+  // Complaints API Integration
+  public async fetchComplaints(params?: Record<string, string>): Promise<Complaint[]> {
+    const data = await apiService.getComplaints(params);
+    this.complaintsCache = data;
+    return data;
+  }
+
   public getComplaints(): Complaint[] {
-    return [...this.complaints];
+    return [...this.complaintsCache];
+  }
+
+  public async fetchComplaintById(id: string): Promise<Complaint> {
+    const complaint = await apiService.getComplaintById(id);
+    const idx = this.complaintsCache.findIndex((c) => c.id === complaint.id);
+    if (idx >= 0) this.complaintsCache[idx] = complaint;
+    else this.complaintsCache.unshift(complaint);
+    return complaint;
   }
 
   public getComplaintById(id: string): Complaint | undefined {
-    return this.complaints.find((c) => c.id === id || c.complaint_number === id);
+    return this.complaintsCache.find((c) => c.id === id || c.complaint_number === id);
   }
 
-  public createComplaint(data: {
+  public async createComplaint(data: {
     title: string;
     description: string;
     category: ComplaintCategory;
     priority: PriorityLevel;
     location: string;
     evidence_urls?: string[];
-  }): Complaint {
+  }): Promise<Complaint> {
     const currentUser = this.getActiveUser();
     const nowIso = new Date().toISOString();
-    const count = this.complaints.length + 101;
-    const complaintNumber = `CMP-2026-${String(count).padStart(4, '0')}`;
     const dueAt = calculateDueAt(nowIso, data.priority);
 
-    // Find dept if matched
-    const deptMatch = this.departments.find(
+    const deptMatch = this.departmentsCache.find(
       (d) => d.name.toLowerCase().includes(data.category.replace('_', ' ')) || d.code.toLowerCase().includes(data.category)
     );
 
-    const newComplaint: Complaint = {
-      id: `cmp-${Date.now()}`,
-      complaint_number: complaintNumber,
+    const complaintData: Partial<Complaint> = {
       title: data.title,
       description: data.description,
       category: data.category,
@@ -131,249 +181,115 @@ class DataService {
       student_name: currentUser.full_name,
       student_email: currentUser.email,
       department_id: deptMatch?.id || 'dept-1',
-      department_name: deptMatch?.name || 'Electrical & Maintenance',
+      department_name: deptMatch?.name || 'Electrical & Power Maintenance',
       evidence_urls: data.evidence_urls || [],
       due_at: dueAt,
       created_at: nowIso,
       updated_at: nowIso,
     };
 
-    this.complaints.unshift(newComplaint);
-    setLocalData(STORAGE_KEYS.COMPLAINTS, this.complaints);
-
-    // Log timeline event
-    this.addTimelineEvent({
-      complaint_id: newComplaint.id,
-      user_id: currentUser.id,
-      user_name: currentUser.full_name,
-      user_role: currentUser.role,
-      new_status: 'submitted',
-      comment: 'Complaint submitted by student.',
-      is_internal: false,
-    });
-
-    // Notify admins & student
-    this.createNotification({
-      user_id: currentUser.id,
-      title: 'Complaint Registered',
-      message: `Your complaint ${newComplaint.complaint_number} has been submitted successfully.`,
-      link: `/complaints/${newComplaint.id}`,
-      type: 'info',
-    });
-
+    const newComplaint = await apiService.createComplaint(complaintData);
+    this.complaintsCache.unshift(newComplaint);
     return newComplaint;
   }
 
-  public updateComplaintStatus(
+  public async updateComplaintStatus(
     id: string,
     newStatus: ComplaintStatus,
     comment: string,
     isInternal: boolean = false
-  ): Complaint | null {
-    const complaint = this.getComplaintById(id);
-    if (!complaint) return null;
-
-    const oldStatus = complaint.status;
+  ): Promise<Complaint> {
     const currentUser = this.getActiveUser();
-    const nowIso = new Date().toISOString();
+    const updated = await apiService.updateComplaintStatus(
+      id,
+      newStatus,
+      comment,
+      isInternal,
+      currentUser.full_name,
+      currentUser.role,
+      currentUser.id
+    );
 
-    complaint.status = newStatus;
-    complaint.updated_at = nowIso;
-
-    if (newStatus === 'resolved') {
-      complaint.resolved_at = nowIso;
-    } else if (newStatus === 'closed') {
-      complaint.closed_at = nowIso;
-    }
-
-    setLocalData(STORAGE_KEYS.COMPLAINTS, this.complaints);
-
-    // Timeline event
-    this.addTimelineEvent({
-      complaint_id: complaint.id,
-      user_id: currentUser.id,
-      user_name: currentUser.full_name,
-      user_role: currentUser.role,
-      old_status: oldStatus,
-      new_status: newStatus,
-      comment: comment || `Status updated from ${oldStatus.toUpperCase()} to ${newStatus.toUpperCase()}`,
-      is_internal: isInternal,
-    });
-
-    // Notify Student
-    this.createNotification({
-      user_id: complaint.student_id,
-      title: `Status Changed: ${complaint.complaint_number}`,
-      message: `Your complaint status is now ${newStatus.replace('_', ' ').toUpperCase()}.`,
-      link: `/complaints/${complaint.id}`,
-      type: newStatus === 'resolved' ? 'success' : 'info',
-    });
-
-    return complaint;
+    const idx = this.complaintsCache.findIndex((c) => c.id === updated.id);
+    if (idx >= 0) this.complaintsCache[idx] = updated;
+    return updated;
   }
 
-  public assignComplaint(id: string, departmentId: string, staffId?: string): Complaint | null {
-    const complaint = this.getComplaintById(id);
-    if (!complaint) return null;
-
-    const dept = this.departments.find((d) => d.id === departmentId);
-    const staff = DEMO_PROFILES.staff;
-    const currentUser = this.getActiveUser();
-
-    if (dept) {
-      complaint.department_id = dept.id;
-      complaint.department_name = dept.name;
-    }
-
-    if (staffId) {
-      complaint.assigned_staff_id = staff.id;
-      complaint.assigned_staff_name = staff.full_name;
-    }
-
-    if (complaint.status === 'submitted' || complaint.status === 'verified') {
-      complaint.status = 'assigned';
-    }
-
-    complaint.updated_at = new Date().toISOString();
-    setLocalData(STORAGE_KEYS.COMPLAINTS, this.complaints);
-
-    this.addTimelineEvent({
-      complaint_id: complaint.id,
-      user_id: currentUser.id,
-      user_name: currentUser.full_name,
-      user_role: currentUser.role,
-      new_status: complaint.status,
-      comment: `Assigned to ${dept?.name || 'Department'} ${staffId ? `(Staff: ${staff.full_name})` : ''}`,
-      is_internal: false,
-    });
-
-    return complaint;
+  public async assignComplaint(id: string, staffId: string, staffName: string): Promise<Complaint> {
+    const updated = await apiService.assignComplaint(id, staffId, staffName);
+    const idx = this.complaintsCache.findIndex((c) => c.id === updated.id);
+    if (idx >= 0) this.complaintsCache[idx] = updated;
+    return updated;
   }
 
-  public updatePriority(id: string, priority: PriorityLevel): Complaint | null {
-    const complaint = this.getComplaintById(id);
-    if (!complaint) return null;
-
-    complaint.priority = priority;
-    complaint.due_at = calculateDueAt(complaint.created_at, priority);
-    complaint.updated_at = new Date().toISOString();
-
-    setLocalData(STORAGE_KEYS.COMPLAINTS, this.complaints);
-
-    const currentUser = this.getActiveUser();
-    this.addTimelineEvent({
-      complaint_id: complaint.id,
-      user_id: currentUser.id,
-      user_name: currentUser.full_name,
-      user_role: currentUser.role,
-      comment: `Priority changed to ${priority.toUpperCase()}. SLA due date re-calculated.`,
-      is_internal: true,
-    });
-
-    return complaint;
+  public async reopenComplaint(id: string, comment?: string): Promise<Complaint> {
+    const updated = await apiService.reopenComplaint(id, comment);
+    const idx = this.complaintsCache.findIndex((c) => c.id === updated.id);
+    if (idx >= 0) this.complaintsCache[idx] = updated;
+    return updated;
   }
 
-  // Timeline
+  // Timeline Events
   public getTimelineEvents(complaintId: string): TimelineEvent[] {
-    return this.timeline.filter((t) => t.complaint_id === complaintId);
-  }
-
-  private addTimelineEvent(event: Omit<TimelineEvent, 'id' | 'created_at'>): void {
-    const newEvent: TimelineEvent = {
-      ...event,
-      id: `tl-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
-      created_at: new Date().toISOString(),
-    };
-    this.timeline.push(newEvent);
-    setLocalData(STORAGE_KEYS.TIMELINE, this.timeline);
-  }
-
-  // Feedback
-  public submitFeedback(complaintId: string, rating: number, comments: string, isSatisfied: boolean): Feedback {
-    const currentUser = this.getActiveUser();
     const complaint = this.getComplaintById(complaintId);
-
-    const feedback: Feedback = {
-      id: `fb-${Date.now()}`,
-      complaint_id: complaintId,
-      student_id: currentUser.id,
-      rating,
-      comments,
-      is_satisfied: isSatisfied,
-      created_at: new Date().toISOString(),
-    };
-
-    this.feedbackList.push(feedback);
-    setLocalData(STORAGE_KEYS.FEEDBACK, this.feedbackList);
-
-    // If satisfied, close complaint
-    if (complaint) {
-      if (isSatisfied) {
-        this.updateComplaintStatus(complaintId, 'closed', `Student submitted feedback (${rating}/5 stars). Closed.`);
-      } else {
-        this.updateComplaintStatus(
-          complaintId,
-          'reopened',
-          `Student marked issue as unresolved (${rating}/5 stars): "${comments}"`
-        );
-      }
-    }
-
-    return feedback;
+    return complaint?.timeline || [];
   }
 
-  public getFeedbackForComplaint(complaintId: string): Feedback | undefined {
-    return this.feedbackList.find((f) => f.complaint_id === complaintId);
+  // Departments API Integration
+  public async fetchDepartments(): Promise<Department[]> {
+    const depts = await apiService.getDepartments();
+    this.departmentsCache = depts;
+    return depts;
   }
 
-  public getAllFeedback(): Feedback[] {
-    return [...this.feedbackList];
-  }
-
-  // Departments
   public getDepartments(): Department[] {
-    return [...this.departments];
+    return [...this.departmentsCache];
   }
 
-  // Notifications
-  public getNotifications(userId?: string): NotificationItem[] {
-    const uid = userId || this.getActiveUser().id;
-    return this.notifications.filter((n) => n.user_id === uid || n.user_id === 'all');
+  public async createDepartment(data: {
+    name: string;
+    code: string;
+    head_name: string;
+    head_email: string;
+    sla_target_hours?: number;
+    monthly_budget?: number;
+  }): Promise<Department> {
+    const newDept = await apiService.createDepartment(data);
+    this.departmentsCache.push(newDept);
+    return newDept;
   }
 
-  public markNotificationRead(id: string): void {
-    const n = this.notifications.find((item) => item.id === id);
-    if (n) {
-      n.is_read = true;
-      setLocalData(STORAGE_KEYS.NOTIFICATIONS, this.notifications);
-    }
+  public async updateDepartment(id: string, data: Partial<Department>): Promise<Department> {
+    const updated = await apiService.updateDepartment(id, data);
+    const idx = this.departmentsCache.findIndex((d) => d.id === id);
+    if (idx >= 0) this.departmentsCache[idx] = updated;
+    return updated;
   }
 
-  private createNotification(data: Omit<NotificationItem, 'id' | 'is_read' | 'created_at'>): void {
-    const n: NotificationItem = {
-      ...data,
-      id: `nt-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
-      is_read: false,
-      created_at: new Date().toISOString(),
-    };
-    this.notifications.unshift(n);
-    setLocalData(STORAGE_KEYS.NOTIFICATIONS, this.notifications);
+  public async deleteDepartment(id: string): Promise<void> {
+    await apiService.deleteDepartment(id);
+    this.departmentsCache = this.departmentsCache.filter((d) => d.id !== id);
   }
 
-  // Service Requests
+  // Services API Integration
+  public async fetchServiceRequests(studentId?: string): Promise<ServiceRequest[]> {
+    const requests = await apiService.getServiceRequests(studentId);
+    this.servicesCache = requests;
+    return requests;
+  }
+
   public getServiceRequests(): ServiceRequest[] {
-    return [...this.services];
+    return [...this.servicesCache];
   }
 
-  public createServiceRequest(data: {
+  public async createServiceRequest(data: {
     service_type: string;
     location: string;
     description: string;
     preferred_slot: string;
-  }): ServiceRequest {
+  }): Promise<ServiceRequest> {
     const currentUser = this.getActiveUser();
-    const req: ServiceRequest = {
-      id: `srv-${Date.now()}`,
+    const newReq = await apiService.createServiceRequest({
       student_id: currentUser.id,
       student_name: currentUser.full_name,
       service_type: data.service_type,
@@ -381,29 +297,66 @@ class DataService {
       description: data.description,
       preferred_slot: data.preferred_slot,
       status: 'pending',
-      created_at: new Date().toISOString(),
-    };
-
-    this.services.unshift(req);
-    setLocalData(STORAGE_KEYS.SERVICES, this.services);
-    return req;
+    });
+    this.servicesCache.unshift(newReq);
+    return newReq;
   }
 
-  // Reset to initial demo state
-  public resetDemoData(): void {
-    this.complaints = INITIAL_COMPLAINTS;
-    this.departments = INITIAL_DEPARTMENTS;
-    this.timeline = INITIAL_TIMELINE;
-    this.feedbackList = INITIAL_FEEDBACK;
-    this.notifications = INITIAL_NOTIFICATIONS;
-    this.services = INITIAL_SERVICES;
+  public async updateServiceRequestStatus(id: string, status: 'pending' | 'scheduled' | 'completed' | 'cancelled'): Promise<ServiceRequest> {
+    const updated = await apiService.updateServiceRequestStatus(id, status);
+    const idx = this.servicesCache.findIndex((s) => s.id === id);
+    if (idx >= 0) this.servicesCache[idx] = updated;
+    return updated;
+  }
 
-    setLocalData(STORAGE_KEYS.COMPLAINTS, this.complaints);
-    setLocalData(STORAGE_KEYS.DEPARTMENTS, this.departments);
-    setLocalData(STORAGE_KEYS.TIMELINE, this.timeline);
-    setLocalData(STORAGE_KEYS.FEEDBACK, this.feedbackList);
-    setLocalData(STORAGE_KEYS.NOTIFICATIONS, this.notifications);
-    setLocalData(STORAGE_KEYS.SERVICES, this.services);
+  // Feedback API Integration
+  public async fetchFeedback(): Promise<Feedback[]> {
+    const fb = await apiService.getFeedback();
+    this.feedbackCache = fb;
+    return fb;
+  }
+
+  public getAllFeedback(): Feedback[] {
+    return [...this.feedbackCache];
+  }
+
+  public getFeedbackForComplaint(complaintId: string): Feedback | undefined {
+    return this.feedbackCache.find((f) => f.complaint_id === complaintId);
+  }
+
+  public async submitFeedback(
+    complaintId: string,
+    rating: number,
+    comments?: string,
+    isSatisfied: boolean = true
+  ): Promise<Feedback> {
+    const currentUser = this.getActiveUser();
+    const fb = await apiService.createFeedback({
+      complaint_id: complaintId,
+      student_id: currentUser.id,
+      rating,
+      comments,
+      is_satisfied: isSatisfied,
+    });
+    this.feedbackCache.unshift(fb);
+    return fb;
+  }
+
+  // Notifications API Integration
+  public async fetchNotifications(userId: string): Promise<NotificationItem[]> {
+    const notifs = await apiService.getNotifications(userId).catch(() => []);
+    this.notificationsCache = notifs;
+    return notifs;
+  }
+
+  public getNotifications(userId: string): NotificationItem[] {
+    return this.notificationsCache.filter((n) => n.user_id === userId);
+  }
+
+  public async markNotificationRead(id: string): Promise<void> {
+    await apiService.markNotificationRead(id).catch(() => {});
+    const notif = this.notificationsCache.find((n) => n.id === id);
+    if (notif) notif.is_read = true;
   }
 }
 

@@ -18,15 +18,41 @@ import {
   Table as TableIcon,
 } from 'lucide-react';
 
+import { Complaint } from '../../types';
+
 export const MyComplaints: React.FC = () => {
   const navigate = useNavigate();
   const currentUser = dataService.getActiveUser();
-  const complaints = dataService.getComplaints().filter((c) => c.student_id === currentUser.id);
+  const [complaints, setComplaints] = useState<Complaint[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   const [search, setSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
+
+  React.useEffect(() => {
+    let isMounted = true;
+    setLoading(true);
+    setError('');
+
+    dataService.fetchComplaints({ student_id: currentUser.id })
+      .then((data) => {
+        if (isMounted) {
+          setComplaints(data.filter((c) => c.student_id === currentUser.id));
+          setLoading(false);
+        }
+      })
+      .catch((err) => {
+        if (isMounted) {
+          setError(err.message || 'Failed to fetch complaints from database');
+          setLoading(false);
+        }
+      });
+
+    return () => { isMounted = false; };
+  }, [currentUser.id]);
 
   const filteredComplaints = complaints.filter((c) => {
     const matchesSearch =
@@ -67,6 +93,19 @@ export const MyComplaints: React.FC = () => {
           Submit New Complaint
         </RippleButton>
       </div>
+
+      {error && (
+        <div className="p-4 rounded-xl border border-red-500/40 bg-red-500/10 text-red-400 text-sm flex items-center space-x-2">
+          <AlertCircle className="w-5 h-5 flex-shrink-0" />
+          <span>{error}</span>
+        </div>
+      )}
+
+      {loading && (
+        <div className="p-8 text-center text-slate-400 text-sm">
+          Loading complaints from database...
+        </div>
+      )}
 
       {/* Filter Toolbar */}
       <GlassCard className="space-y-4">

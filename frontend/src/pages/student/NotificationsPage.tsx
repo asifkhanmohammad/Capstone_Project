@@ -4,14 +4,33 @@ import { dataService } from '../../services/dataService';
 import { GlassCard } from '../../components/ui/GlassCard';
 import { Bell, CheckCircle2, AlertTriangle, Info } from 'lucide-react';
 
+import { NotificationItem } from '../../types';
+
 export const NotificationsPage: React.FC = () => {
   const navigate = useNavigate();
   const currentUser = dataService.getActiveUser();
-  const [notifications, setNotifications] = useState(() => dataService.getNotifications(currentUser.id));
+  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const handleMarkRead = (id: string, link?: string) => {
-    dataService.markNotificationRead(id);
-    setNotifications(dataService.getNotifications(currentUser.id));
+  const loadData = React.useCallback(async () => {
+    setLoading(true);
+    try {
+      const data = await dataService.fetchNotifications(currentUser.id);
+      setNotifications(data);
+    } catch (err) {
+      console.error('Failed to load notifications:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, [currentUser.id]);
+
+  React.useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  const handleMarkRead = async (id: string, link?: string) => {
+    await dataService.markNotificationRead(id);
+    await loadData();
     if (link) navigate(link);
   };
 

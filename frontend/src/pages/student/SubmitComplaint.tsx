@@ -77,13 +77,16 @@ export const SubmitComplaint: React.FC = () => {
     setEvidenceUrls((prev) => [...prev, img]);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const [errorMessage, setErrorMessage] = useState('');
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title || !description || !location) return;
-
+    setErrorMessage('');
     setIsSubmitting(true);
-    setTimeout(() => {
-      const newComplaint = dataService.createComplaint({
+
+    try {
+      const newComplaint = await dataService.createComplaint({
         title,
         description,
         category,
@@ -94,7 +97,10 @@ export const SubmitComplaint: React.FC = () => {
 
       setIsSubmitting(false);
       navigate(`/complaints/${newComplaint.id}`);
-    }, 600);
+    } catch (err: any) {
+      setIsSubmitting(false);
+      setErrorMessage(err.message || 'Failed to submit complaint to database server.');
+    }
   };
 
   const categories: { value: ComplaintCategory; label: string }[] = [

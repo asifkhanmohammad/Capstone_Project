@@ -5,91 +5,233 @@ import { Complaint } from './models/Complaint.js';
 import { Department } from './models/Department.js';
 import { ServiceRequest } from './models/ServiceRequest.js';
 import { Feedback } from './models/Feedback.js';
+import { Notification } from './models/Notification.js';
 
 dotenv.config();
 
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/ccsm_db';
 
 const seedDepartments = [
-  { id: 'dept-1', name: 'Electrical & Power Maintenance', code: 'ELEC', headName: 'Dr. R. Vijay Krishna', headEmail: 'vijaykrishna.r@nriit.edu.in', staffCount: 8, activeComplaints: 3, slaTargetHours: 12 },
-  { id: 'dept-2', name: 'Plumbing & Civil Infrastructure', code: 'PLUM', headName: 'Dr. G.L. Narayana', headEmail: 'narayana.gl@nriit.edu.in', staffCount: 6, activeComplaints: 2, slaTargetHours: 24 },
-  { id: 'dept-3', name: 'IT Infrastructure & Campus Wi-Fi', code: 'ITINF', headName: 'Dr. K.V. Sambasiva Rao', headEmail: 'sambasivarao.kv@nriit.edu.in', staffCount: 12, activeComplaints: 5, slaTargetHours: 6 },
-  { id: 'dept-4', name: 'Sanitation & Hygiene Services', code: 'CLEAN', headName: 'Prof. N.V. Surendra Babu', headEmail: 'surendrababu.nv@nriit.edu.in', staffCount: 10, activeComplaints: 1, slaTargetHours: 8 },
-  { id: 'dept-5', name: 'Campus Transport & Fleet', code: 'TRANS', headName: 'Dr. P. Rama Koteswara Rao', headEmail: 'transport@nriit.edu.in', staffCount: 5, activeComplaints: 0, slaTargetHours: 24 },
+  {
+    id: 'dept-1',
+    name: 'Electrical & Power Maintenance',
+    code: 'ELEC',
+    head_name: 'Dr. R. Vijay Krishna',
+    head_email: 'vijaykrishna.r@nriit.edu.in',
+    staff_count: 8,
+    active_complaints: 3,
+    sla_target_hours: 12,
+    monthly_budget: 65000,
+    created_at: new Date().toISOString(),
+  },
+  {
+    id: 'dept-2',
+    name: 'Plumbing & Civil Infrastructure',
+    code: 'PLUM',
+    head_name: 'Dr. G.L. Narayana',
+    head_email: 'narayana.gl@nriit.edu.in',
+    staff_count: 6,
+    active_complaints: 2,
+    sla_target_hours: 24,
+    monthly_budget: 45000,
+    created_at: new Date().toISOString(),
+  },
+  {
+    id: 'dept-3',
+    name: 'IT Infrastructure & Campus Wi-Fi',
+    code: 'ITINF',
+    head_name: 'Dr. K.V. Sambasiva Rao',
+    head_email: 'sambasivarao.kv@nriit.edu.in',
+    staff_count: 12,
+    active_complaints: 5,
+    sla_target_hours: 6,
+    monthly_budget: 120000,
+    created_at: new Date().toISOString(),
+  },
+  {
+    id: 'dept-4',
+    name: 'Sanitation & Hygiene Services',
+    code: 'CLEAN',
+    head_name: 'Prof. N.V. Surendra Babu',
+    head_email: 'surendrababu.nv@nriit.edu.in',
+    staff_count: 10,
+    active_complaints: 1,
+    sla_target_hours: 8,
+    monthly_budget: 35000,
+    created_at: new Date().toISOString(),
+  },
+  {
+    id: 'dept-5',
+    name: 'Campus Transport & Fleet',
+    code: 'TRANS',
+    head_name: 'Dr. P. Rama Koteswara Rao',
+    head_email: 'transport@nriit.edu.in',
+    staff_count: 5,
+    active_complaints: 0,
+    sla_target_hours: 24,
+    monthly_budget: 80000,
+    created_at: new Date().toISOString(),
+  },
 ];
 
 const seedUsers = [
-  { id: 'usr-student-1', name: 'Mohammad Asif Khan', email: 'asif.khan@student.nriit.edu.in', role: 'student', department: 'Computer Science & Engineering', phone: '+91 9876543210' },
-  { id: 'usr-staff-1', name: 'K. Ramesh (Electrical Lead)', email: 'ramesh.elec@nriit.edu.in', role: 'staff', department: 'Electrical & Power Maintenance', phone: '+91 9876543211' },
-  { id: 'usr-admin-1', name: 'Dr. Principal Admin', email: 'admin@nriit.edu.in', role: 'admin', department: 'Administration', phone: '+91 9876543212' },
+  {
+    id: 'usr-student-1',
+    name: 'Mohammad Asif Khan',
+    full_name: 'Mohammad Asif Khan',
+    email: 'asif.khan@student.nriit.edu.in',
+    role: 'student',
+    department: 'Computer Science & Engineering',
+    department_id: 'dept-3',
+    department_name: 'IT Infrastructure & Campus Wi-Fi',
+    phone: '+91 9876543210',
+    student_id_number: '217W1A0501',
+    created_at: new Date().toISOString(),
+  },
+  {
+    id: 'usr-staff-1',
+    name: 'K. Ramesh (Electrical Lead)',
+    full_name: 'K. Ramesh',
+    email: 'ramesh.elec@nriit.edu.in',
+    role: 'staff',
+    department: 'Electrical & Power Maintenance',
+    department_id: 'dept-1',
+    department_name: 'Electrical & Power Maintenance',
+    phone: '+91 9876543211',
+    created_at: new Date().toISOString(),
+  },
+  {
+    id: 'usr-admin-1',
+    name: 'Dr. Principal Admin',
+    full_name: 'Dr. Principal Admin',
+    email: 'admin@nriit.edu.in',
+    role: 'admin',
+    department: 'Administration',
+    phone: '+91 9876543212',
+    created_at: new Date().toISOString(),
+  },
 ];
 
 const seedComplaints = [
   {
-    id: 'CMP-2026-001',
+    id: 'cmp-1001',
+    complaint_number: 'CMP-2026-0001',
     title: 'Ceiling Fan Not Working in CSE Lab-3',
-    description: 'The overhead fan in Lab 3 Row B is completely unresponsive.',
+    description: 'The overhead fan in Lab 3 Row B is completely unresponsive causing high heat.',
     category: 'electrical',
     priority: 'high',
     status: 'in_progress',
-    studentId: 'usr-student-1',
-    studentName: 'Mohammad Asif Khan',
+    student_id: 'usr-student-1',
+    student_name: 'Mohammad Asif Khan',
+    student_email: 'asif.khan@student.nriit.edu.in',
     location: 'Main Block 2nd Floor, Lab 3',
-    assignedTo: 'usr-staff-1',
-    assignedStaffName: 'K. Ramesh (Electrical Lead)',
-    departmentId: 'dept-1',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    dueAt: new Date(Date.now() + 12 * 3600 * 1000).toISOString(),
+    assigned_staff_id: 'usr-staff-1',
+    assigned_staff_name: 'K. Ramesh (Electrical Lead)',
+    department_id: 'dept-1',
+    department_name: 'Electrical & Power Maintenance',
+    evidence_urls: ['https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=800&auto=format&fit=crop'],
+    created_at: new Date(Date.now() - 3600000 * 5).toISOString(),
+    updated_at: new Date().toISOString(),
+    due_at: new Date(Date.now() + 12 * 3600 * 1000).toISOString(),
     upvotes: 4,
     timeline: [
-      { id: 'tl-1', status: 'submitted', timestamp: new Date().toISOString(), updatedBy: 'Mohammad Asif Khan', note: 'Complaint submitted' },
-      { id: 'tl-2', status: 'assigned', timestamp: new Date().toISOString(), updatedBy: 'Admin', note: 'Assigned to K. Ramesh' }
-    ]
+      {
+        id: 'tl-1',
+        complaint_id: 'cmp-1001',
+        user_id: 'usr-student-1',
+        user_name: 'Mohammad Asif Khan',
+        user_role: 'student',
+        new_status: 'submitted',
+        comment: 'Complaint registered via portal',
+        is_internal: false,
+        created_at: new Date(Date.now() - 3600000 * 5).toISOString(),
+      },
+      {
+        id: 'tl-2',
+        complaint_id: 'cmp-1001',
+        user_id: 'usr-admin-1',
+        user_name: 'Dr. Principal Admin',
+        user_role: 'admin',
+        old_status: 'submitted',
+        new_status: 'in_progress',
+        comment: 'Assigned ticket to K. Ramesh (Electrical Lead)',
+        is_internal: false,
+        created_at: new Date(Date.now() - 3600000 * 2).toISOString(),
+      },
+    ],
   },
   {
-    id: 'CMP-2026-002',
+    id: 'cmp-1002',
+    complaint_number: 'CMP-2026-0002',
     title: 'Wi-Fi Connection Dropping in Hostel Block B',
     description: 'Frequent disconnection on 3rd floor Wi-Fi Access Point AP-04.',
     category: 'internet_wifi',
     priority: 'medium',
     status: 'submitted',
-    studentId: 'usr-student-1',
-    studentName: 'Mohammad Asif Khan',
+    student_id: 'usr-student-1',
+    student_name: 'Mohammad Asif Khan',
+    student_email: 'asif.khan@student.nriit.edu.in',
     location: 'Hostel Block B, Room 304',
-    departmentId: 'dept-3',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    dueAt: new Date(Date.now() + 6 * 3600 * 1000).toISOString(),
+    department_id: 'dept-3',
+    department_name: 'IT Infrastructure & Campus Wi-Fi',
+    evidence_urls: [],
+    created_at: new Date(Date.now() - 3600000 * 2).toISOString(),
+    updated_at: new Date().toISOString(),
+    due_at: new Date(Date.now() + 6 * 3600 * 1000).toISOString(),
     upvotes: 9,
     timeline: [
-      { id: 'tl-3', status: 'submitted', timestamp: new Date().toISOString(), updatedBy: 'Mohammad Asif Khan', note: 'Submitted via portal' }
-    ]
-  }
+      {
+        id: 'tl-3',
+        complaint_id: 'cmp-1002',
+        user_id: 'usr-student-1',
+        user_name: 'Mohammad Asif Khan',
+        user_role: 'student',
+        new_status: 'submitted',
+        comment: 'Submitted via portal',
+        is_internal: false,
+        created_at: new Date(Date.now() - 3600000 * 2).toISOString(),
+      },
+    ],
+  },
 ];
 
 const seedServices = [
   {
-    id: 'SRV-2026-01',
-    title: 'Bonafide Certificate Request',
-    type: 'certificate',
-    studentId: 'usr-student-1',
-    studentName: 'Mohammad Asif Khan',
-    status: 'in_progress',
-    createdAt: new Date().toISOString(),
-    details: 'Requested for bank education loan processing.'
-  }
+    id: 'srv-101',
+    student_id: 'usr-student-1',
+    student_name: 'Mohammad Asif Khan',
+    service_type: 'Bonafide Certificate',
+    location: 'Administrative Office Counter 2',
+    description: 'Requested for bank education loan processing.',
+    preferred_slot: 'Morning (10:00 AM - 12:00 PM)',
+    status: 'scheduled',
+    created_at: new Date().toISOString(),
+  },
 ];
 
 const seedFeedback = [
   {
-    id: 'FB-01',
-    complaintId: 'CMP-2026-001',
-    studentId: 'usr-student-1',
+    id: 'fb-201',
+    complaint_id: 'cmp-1001',
+    student_id: 'usr-student-1',
     rating: 5,
-    comment: 'Quick response time and professional maintenance service!',
-    createdAt: new Date().toISOString()
-  }
+    comments: 'Quick response time and professional maintenance service!',
+    is_satisfied: true,
+    created_at: new Date().toISOString(),
+  },
+];
+
+const seedNotifications = [
+  {
+    id: 'notif-1',
+    user_id: 'usr-student-1',
+    title: 'Complaint Assigned',
+    message: 'Your complaint CMP-2026-0001 has been assigned to K. Ramesh.',
+    link: '/complaints/cmp-1001',
+    type: 'info',
+    is_read: false,
+    created_at: new Date().toISOString(),
+  },
 ];
 
 async function seedDatabase() {
@@ -103,6 +245,7 @@ async function seedDatabase() {
     await Department.deleteMany({});
     await ServiceRequest.deleteMany({});
     await Feedback.deleteMany({});
+    await Notification.deleteMany({});
 
     console.log('Inserting seed data into MongoDB...');
     await User.insertMany(seedUsers);
@@ -110,14 +253,10 @@ async function seedDatabase() {
     await Complaint.insertMany(seedComplaints);
     await ServiceRequest.insertMany(seedServices);
     await Feedback.insertMany(seedFeedback);
+    await Notification.insertMany(seedNotifications);
 
     console.log('Successfully seeded MongoDB database `ccsm_db`!');
-    console.log('Collections available in MongoDB Compass:');
-    console.log(' - users');
-    console.log(' - departments');
-    console.log(' - complaints');
-    console.log(' - servicerequests');
-    console.log(' - feedbacks');
+    console.log('Collections populated: users, departments, complaints, servicerequests, feedbacks, notifications');
 
     process.exit(0);
   } catch (err) {

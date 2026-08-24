@@ -6,7 +6,7 @@ import { StatusBadge } from '../../components/ui/StatusBadge';
 import { SlaTimerBadge } from '../../components/ui/SlaTimerBadge';
 import { RippleButton } from '../../components/ui/RippleButton';
 import { Modal } from '../../components/ui/Modal';
-import { Complaint, ComplaintStatus, PriorityLevel } from '../../types';
+import { Complaint, ComplaintStatus, PriorityLevel, Department } from '../../types';
 import {
   ListOrdered,
   Search,
@@ -20,8 +20,9 @@ import {
 
 export const AllComplaints: React.FC = () => {
   const navigate = useNavigate();
-  const [complaints, setComplaints] = useState(() => dataService.getComplaints());
-  const departments = dataService.getDepartments();
+  const [complaints, setComplaints] = useState<Complaint[]>([]);
+  const [departments, setDepartments] = useState<Department[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
@@ -35,6 +36,26 @@ export const AllComplaints: React.FC = () => {
   const [targetStatus, setTargetStatus] = useState<ComplaintStatus>('assigned');
   const [targetPriority, setTargetPriority] = useState<PriorityLevel>('medium');
   const [internalComment, setInternalComment] = useState('');
+
+  const loadData = React.useCallback(async () => {
+    setLoading(true);
+    try {
+      const [c, d] = await Promise.all([
+        dataService.fetchComplaints(),
+        dataService.fetchDepartments(),
+      ]);
+      setComplaints(c);
+      setDepartments(d);
+    } catch (err) {
+      console.error('Failed to load admin complaints:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  React.useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   const filtered = complaints.filter((c) => {
     const matchesSearch =
@@ -58,17 +79,21 @@ export const AllComplaints: React.FC = () => {
     setInternalComment('Admin reassigned ticket to department staff.');
   };
 
-  const handleSaveManagementChanges = (e: React.FormEvent) => {
+  const handleSaveManageModal = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedTicket) return;
 
-    // Apply reassignment, priority & status updates
-    dataService.assignComplaint(selectedTicket.id, targetDeptId, targetStaffId);
-    dataService.updatePriority(selectedTicket.id, targetPriority);
-    dataService.updateComplaintStatus(selectedTicket.id, targetStatus, internalComment, true);
-
-    setComplaints(dataService.getComplaints());
-    setSelectedTicket(null);
+    try {
+      const staffName = 'K. Ramesh (Electrical Lead)';
+      await dataService.assignComplaint(selectedTicket.id, targetStaffId, staffName);
+      if (targetStatus !== selectedTicket.status) {
+        await dataService.updateComplaintStatus(selectedTicket.id, targetStatus, internalComment, true);
+      }
+      await loadData();
+      setSelectedTicket(null);
+    } catch (err: any) {
+      alert(err.message || 'Failed to update complaint');
+    }
   };
 
   return (
@@ -202,7 +227,7 @@ export const AllComplaints: React.FC = () => {
           onClose={() => setSelectedTicket(null)}
           title={`Admin Reassignment & Control: ${selectedTicket.complaint_number}`}
         >
-          <form onSubmit={handleSaveManagementChanges} className="space-y-4">
+          <form onSubmit={handleSaveManageModal} className="space-y-4">
             <div>
               <label className="block text-xs font-bold text-slate-300 mb-1">Assign Department</label>
               <select

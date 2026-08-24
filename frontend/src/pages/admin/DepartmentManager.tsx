@@ -3,8 +3,26 @@ import { dataService } from '../../services/dataService';
 import { GlassCard } from '../../components/ui/GlassCard';
 import { Building2, Mail, User, ShieldCheck } from 'lucide-react';
 
+import { Department } from '../../types';
+
 export const DepartmentManager: React.FC = () => {
-  const departments = dataService.getDepartments();
+  const [departments, setDepartments] = useState<Department[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  React.useEffect(() => {
+    let isMounted = true;
+    dataService.fetchDepartments()
+      .then((data) => {
+        if (isMounted) {
+          setDepartments(data);
+          setLoading(false);
+        }
+      })
+      .catch(() => {
+        if (isMounted) setLoading(false);
+      });
+    return () => { isMounted = false; };
+  }, []);
 
   return (
     <div className="space-y-6">

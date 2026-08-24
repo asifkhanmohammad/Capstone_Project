@@ -4,11 +4,14 @@ export type UserRole = 'student' | 'staff' | 'admin' | 'super_admin';
 
 export interface UserSession {
   id: string;
-  name: string;
+  name?: string;
+  full_name?: string;
   email: string;
   role: UserRole;
   department?: string;
+  department_name?: string;
   avatar?: string;
+  avatar_url?: string;
 }
 
 interface AuthContextType {

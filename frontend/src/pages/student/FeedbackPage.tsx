@@ -3,8 +3,26 @@ import { dataService } from '../../services/dataService';
 import { GlassCard } from '../../components/ui/GlassCard';
 import { MessageSquareHeart, Star, CheckCircle2 } from 'lucide-react';
 
+import { Feedback } from '../../types';
+
 export const FeedbackPage: React.FC = () => {
-  const feedbackList = dataService.getAllFeedback();
+  const [feedbackList, setFeedbackList] = React.useState<Feedback[]>([]);
+  const [loading, setLoading] = React.useState(true);
+
+  React.useEffect(() => {
+    let isMounted = true;
+    dataService.fetchFeedback()
+      .then((data) => {
+        if (isMounted) {
+          setFeedbackList(data);
+          setLoading(false);
+        }
+      })
+      .catch(() => {
+        if (isMounted) setLoading(false);
+      });
+    return () => { isMounted = false; };
+  }, []);
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
