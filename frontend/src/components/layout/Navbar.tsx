@@ -1,21 +1,18 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { dataService } from '../../services/dataService';
-import { RippleButton } from '../ui/RippleButton';
+import { useAuth } from '../../context/AuthContext';
 import {
   Bell,
   ShieldCheck,
-  User,
   GraduationCap,
   Wrench,
   BarChart3,
   LogOut,
-  ChevronDown,
   CheckCircle,
   AlertTriangle,
   Menu,
   X,
-  RefreshCw,
 } from 'lucide-react';
 
 interface NavbarProps {
@@ -25,32 +22,22 @@ interface NavbarProps {
 
 export const Navbar: React.FC<NavbarProps> = ({ onToggleSidebar, isSidebarOpen }) => {
   const navigate = useNavigate();
-  const [activeRole, setActiveRole] = useState(dataService.getActiveRole());
-  const [showRoleMenu, setShowRoleMenu] = useState(false);
+  const { user, logout } = useAuth();
   const [showNotifMenu, setShowNotifMenu] = useState(false);
-  const currentUser = dataService.getActiveUser();
+
+  const currentUser = user || dataService.getActiveUser();
+  const activeRole = currentUser.role || 'student';
   const notifications = dataService.getNotifications(currentUser.id);
   const unreadCount = notifications.filter((n) => !n.is_read).length;
 
-  const handleSwitchRole = (role: 'student' | 'staff' | 'admin' | 'super_admin') => {
-    dataService.setActiveRole(role);
-    setActiveRole(role);
-    setShowRoleMenu(false);
-
-    // Redirect to role home page
-    if (role === 'student') navigate('/student');
-    else if (role === 'staff') navigate('/staff');
-    else navigate('/admin');
-  };
-
-  const handleResetDemoData = async () => {
-    await dataService.syncWithBackend();
-    window.location.reload();
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
   };
 
   const roleBadges: Record<string, { label: string; bg: string; icon: React.ReactNode }> = {
-    student: { label: 'Student Persona', bg: 'bg-blue-500/20 text-blue-400 border-blue-500/30', icon: <GraduationCap className="w-3.5 h-3.5" /> },
-    staff: { label: 'Staff Technician', bg: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30', icon: <Wrench className="w-3.5 h-3.5" /> },
+    student: { label: 'Student', bg: 'bg-blue-500/20 text-blue-400 border-blue-500/30', icon: <GraduationCap className="w-3.5 h-3.5" /> },
+    staff: { label: 'Staff / Faculty', bg: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30', icon: <Wrench className="w-3.5 h-3.5" /> },
     admin: { label: 'Dept Admin', bg: 'bg-amber-500/20 text-amber-400 border-amber-500/30', icon: <BarChart3 className="w-3.5 h-3.5" /> },
     super_admin: { label: 'Super Admin', bg: 'bg-purple-500/20 text-purple-400 border-purple-500/30', icon: <ShieldCheck className="w-3.5 h-3.5" /> },
   };
@@ -81,90 +68,12 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleSidebar, isSidebarOpen }
           </Link>
         </div>
 
-        {/* Right Side: Demo Persona Selector & Notifications */}
+        {/* Right Side: User Profile & Controls */}
         <div className="flex items-center space-x-3">
-          {/* Demo Persona Quick Switcher */}
-          <div className="relative">
-            <button
-              onClick={() => setShowRoleMenu(!showRoleMenu)}
-              className={`flex items-center space-x-2 px-3 py-1.5 rounded-lg border text-xs font-semibold transition-all ${currentBadge.bg} hover:brightness-110`}
-              title="Click to Switch Demo Roles"
-            >
-              {currentBadge.icon}
-              <span className="hidden sm:inline">{currentBadge.label}</span>
-              <ChevronDown className="w-3.5 h-3.5 opacity-70" />
-            </button>
-
-            {showRoleMenu && (
-              <div className="absolute right-0 mt-2 w-64 rounded-xl border border-slate-800 bg-slate-900 shadow-2xl p-2 z-50 animate-fadeIn">
-                <div className="px-3 py-2 border-b border-slate-800 mb-1">
-                  <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Demo Switcher</p>
-                  <p className="text-xs text-slate-500">Switch role view for project expo demonstration:</p>
-                </div>
-
-                <button
-                  onClick={() => handleSwitchRole('student')}
-                  className={`w-full flex items-center space-x-2.5 px-3 py-2 rounded-lg text-xs font-medium text-left transition-colors ${
-                    activeRole === 'student' ? 'bg-blue-600/20 text-blue-400' : 'text-slate-300 hover:bg-slate-800'
-                  }`}
-                >
-                  <GraduationCap className="w-4 h-4 text-blue-400" />
-                  <div>
-                    <p className="font-semibold">Student Portal</p>
-                    <p className="text-[10px] text-slate-400">Mohammad Asif Khan (Student)</p>
-                  </div>
-                </button>
-
-                <button
-                  onClick={() => handleSwitchRole('staff')}
-                  className={`w-full flex items-center space-x-2.5 px-3 py-2 rounded-lg text-xs font-medium text-left transition-colors ${
-                    activeRole === 'staff' ? 'bg-emerald-600/20 text-emerald-400' : 'text-slate-300 hover:bg-slate-800'
-                  }`}
-                >
-                  <Wrench className="w-4 h-4 text-emerald-400" />
-                  <div>
-                    <p className="font-semibold">Staff Work-Center</p>
-                    <p className="text-[10px] text-slate-400">Sri Ch. Satyanarayana (Senior Lead)</p>
-                  </div>
-                </button>
-
-                <button
-                  onClick={() => handleSwitchRole('admin')}
-                  className={`w-full flex items-center space-x-2.5 px-3 py-2 rounded-lg text-xs font-medium text-left transition-colors ${
-                    activeRole === 'admin' ? 'bg-amber-600/20 text-amber-400' : 'text-slate-300 hover:bg-slate-800'
-                  }`}
-                >
-                  <BarChart3 className="w-4 h-4 text-amber-400" />
-                  <div>
-                    <p className="font-semibold">Department Admin</p>
-                    <p className="text-[10px] text-slate-400">Dr. K.V. Sambasiva Rao (HOD, CSE)</p>
-                  </div>
-                </button>
-
-                <button
-                  onClick={() => handleSwitchRole('super_admin')}
-                  className={`w-full flex items-center space-x-2.5 px-3 py-2 rounded-lg text-xs font-medium text-left transition-colors ${
-                    activeRole === 'super_admin' ? 'bg-purple-600/20 text-purple-400' : 'text-slate-300 hover:bg-slate-800'
-                  }`}
-                >
-                  <ShieldCheck className="w-4 h-4 text-purple-400" />
-                  <div>
-                    <p className="font-semibold">Super Admin</p>
-                    <p className="text-[10px] text-slate-400">Dr. C. Naga Bhaskar (Principal)</p>
-                  </div>
-                </button>
-
-                <div className="mt-2 pt-2 border-t border-slate-800">
-                  <button
-                    onClick={handleResetDemoData}
-                    className="w-full flex items-center space-x-2 px-3 py-1.5 rounded-lg text-xs text-slate-400 hover:text-white hover:bg-slate-800"
-                  >
-                    <RefreshCw className="w-3.5 h-3.5" />
-                    <span>Reset Demo Data</span>
-                  </button>
-                </div>
-              </div>
-            )}
+          {/* Active Role Badge */}
+          <div className={`flex items-center space-x-2 px-3 py-1.5 rounded-lg border text-xs font-semibold ${currentBadge.bg}`}>
+            {currentBadge.icon}
+            <span className="hidden sm:inline">{currentBadge.label}</span>
           </div>
 
           {/* Notifications Dropdown */}
@@ -223,17 +132,21 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleSidebar, isSidebarOpen }
             )}
           </div>
 
-          {/* User Profile Badge */}
-          <div className="flex items-center space-x-2.5 pl-2 border-l border-slate-800">
-            <img
-              src={currentUser.avatar_url}
-              alt={currentUser.full_name}
-              className="w-8 h-8 rounded-full border border-slate-700 object-cover"
-            />
+          {/* User Profile Info & Logout */}
+          <div className="flex items-center space-x-3 pl-2 border-l border-slate-800">
             <div className="hidden lg:block text-left">
               <p className="text-xs font-semibold text-white leading-tight">{currentUser.full_name}</p>
               <p className="text-[10px] text-slate-400 leading-tight">{currentUser.email}</p>
             </div>
+            
+            <button
+              onClick={handleLogout}
+              className="p-2 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors flex items-center space-x-1"
+              title="Sign Out"
+            >
+              <LogOut className="w-5 h-5" />
+              <span className="hidden md:inline text-xs font-semibold">Logout</span>
+            </button>
           </div>
         </div>
       </div>

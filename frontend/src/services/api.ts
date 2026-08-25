@@ -1,6 +1,6 @@
 import { Complaint, Department, ServiceRequest, Feedback, NotificationItem, UserProfile } from '../types';
 
-const API_BASE = (import.meta.env.VITE_API_URL || 'http://localhost:5000/api').replace(/\/$/, '');
+const API_BASE = (import.meta.env.VITE_API_URL || '/api').replace(/\/$/, '');
 
 async function fetchJSON<T>(endpoint: string, options?: RequestInit): Promise<T> {
   const token = localStorage.getItem('ccsm_auth_token_v1');
@@ -43,9 +43,6 @@ async function fetchJSON<T>(endpoint: string, options?: RequestInit): Promise<T>
 
     return (await res.json()) as T;
   } catch (err: any) {
-    if (err.message && !err.message.includes('Server returned') && !err.message.includes('User')) {
-      throw new Error(`Unable to connect to database server (${API_BASE}). Please ensure backend service is running.`);
-    }
     throw err;
   }
 }
@@ -53,44 +50,24 @@ async function fetchJSON<T>(endpoint: string, options?: RequestInit): Promise<T>
 export const apiService = {
   // Auth API
   async login(email: string, password?: string, role?: string): Promise<{ token: string; user: UserProfile }> {
-    try {
-      return await fetchJSON<{ token: string; user: UserProfile }>('/auth/login', {
-        method: 'POST',
-        body: JSON.stringify({ email, password, role }),
-      });
-    } catch (err: any) {
-      // Fallback for offline backend or MongoDB disconnected
-      const targetRole = role || (email.includes('admin') ? 'admin' : email.includes('staff') ? 'staff' : 'student');
-      const demoUser: UserProfile = {
-        id: `usr-${targetRole}-1`,
-        full_name: email.includes('admin') ? 'Dr. Principal Admin' : email.includes('staff') ? 'K. Ramesh (Staff)' : 'Mohammad Asif Khan',
-        email: email,
-        role: targetRole as any,
-        department_name: targetRole === 'staff' ? 'Electrical Maintenance' : targetRole === 'admin' ? 'Administration' : 'Computer Science & Engineering',
-        created_at: new Date().toISOString(),
-      };
-      return { token: 'demo-session-token', user: demoUser };
-    }
+    return fetchJSON<{ token: string; user: UserProfile }>('/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ email, password, role }),
+    });
   },
 
-  async register(data: { name: string; email: string; role?: string; department?: string; phone?: string }): Promise<{ token: string; user: UserProfile }> {
-    try {
-      return await fetchJSON<{ token: string; user: UserProfile }>('/auth/register', {
-        method: 'POST',
-        body: JSON.stringify(data),
-      });
-    } catch {
-      const user: UserProfile = {
-        id: `usr-reg-${Date.now()}`,
-        full_name: data.name,
-        email: data.email,
-        role: (data.role as any) || 'student',
-        department_name: data.department || 'Computer Science & Engineering',
-        phone: data.phone,
-        created_at: new Date().toISOString(),
-      };
-      return { token: 'demo-session-token', user };
-    }
+  async register(data: { name: string; email: string; password?: string; role?: string; department?: string; phone?: string }): Promise<{ token: string; user: UserProfile }> {
+    return fetchJSON<{ token: string; user: UserProfile }>('/auth/register', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  async googleLogin(payload: { email?: string; name?: string; picture?: string; credential?: string; role?: string }): Promise<{ token: string; user: UserProfile }> {
+    return fetchJSON<{ token: string; user: UserProfile }>('/auth/google', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
   },
 
 

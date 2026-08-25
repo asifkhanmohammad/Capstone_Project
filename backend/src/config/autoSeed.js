@@ -1,15 +1,9 @@
-import mongoose from 'mongoose';
-import dotenv from 'dotenv';
-import { User } from './models/User.js';
-import { Complaint } from './models/Complaint.js';
-import { Department } from './models/Department.js';
-import { ServiceRequest } from './models/ServiceRequest.js';
-import { Feedback } from './models/Feedback.js';
-import { Notification } from './models/Notification.js';
-
-dotenv.config();
-
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/ccsm_db';
+import { User } from '../models/User.js';
+import { Department } from '../models/Department.js';
+import { Complaint } from '../models/Complaint.js';
+import { ServiceRequest } from '../models/ServiceRequest.js';
+import { Feedback } from '../models/Feedback.js';
+import { Notification } from '../models/Notification.js';
 
 const seedDepartments = [
   {
@@ -237,35 +231,22 @@ const seedNotifications = [
   },
 ];
 
-async function seedDatabase() {
+export async function autoSeedDatabase() {
   try {
-    console.log(`Connecting to MongoDB at: ${MONGODB_URI}`);
-    await mongoose.connect(MONGODB_URI, { serverSelectionTimeoutMS: 3000 });
-
-    console.log('Clearing existing collections...');
-    await User.deleteMany({});
-    await Complaint.deleteMany({});
-    await Department.deleteMany({});
-    await ServiceRequest.deleteMany({});
-    await Feedback.deleteMany({});
-    await Notification.deleteMany({});
-
-    console.log('Inserting seed data into MongoDB...');
-    await User.insertMany(seedUsers);
-    await Department.insertMany(seedDepartments);
-    await Complaint.insertMany(seedComplaints);
-    await ServiceRequest.insertMany(seedServices);
-    await Feedback.insertMany(seedFeedback);
-    await Notification.insertMany(seedNotifications);
-
-    console.log('Successfully seeded MongoDB database `ccsm_db`!');
-    console.log('Collections populated: users, departments, complaints, servicerequests, feedbacks, notifications');
-
-    process.exit(0);
+    const userCount = await User.countDocuments();
+    if (userCount === 0) {
+      console.log('[AutoSeed] Database is empty. Seeding initial original dataset into MongoDB...');
+      await User.insertMany(seedUsers);
+      await Department.insertMany(seedDepartments);
+      await Complaint.insertMany(seedComplaints);
+      await ServiceRequest.insertMany(seedServices);
+      await Feedback.insertMany(seedFeedback);
+      await Notification.insertMany(seedNotifications);
+      console.log('[AutoSeed] MongoDB auto-seeding completed successfully.');
+    } else {
+      console.log('[AutoSeed] MongoDB contains existing data. Skipping seed.');
+    }
   } catch (err) {
-    console.error('Database seeding failed:', err);
-    process.exit(1);
+    console.error('[AutoSeed] Error during automatic database seeding:', err.message);
   }
 }
-
-seedDatabase();

@@ -17,15 +17,21 @@ import {
   Lock,
 } from 'lucide-react';
 import { dataService } from '../services/dataService';
+import { useAuth } from '../context/AuthContext';
 
 export const LandingPage: React.FC = () => {
   const navigate = useNavigate();
 
+  const { isAuthenticated, user } = useAuth();
+
   const handleLaunchRole = (role: 'student' | 'staff' | 'admin' | 'super_admin') => {
-    dataService.setActiveRole(role);
-    if (role === 'student') navigate('/student');
-    else if (role === 'staff') navigate('/staff');
-    else navigate('/admin');
+    if (isAuthenticated && user) {
+      if (user.role === 'student') navigate('/student');
+      else if (user.role === 'staff') navigate('/staff');
+      else navigate('/admin');
+    } else {
+      navigate('/login', { state: { role } });
+    }
   };
 
   return (
@@ -51,7 +57,7 @@ export const LandingPage: React.FC = () => {
             icon={<ArrowRight className="w-5 h-5" />}
             onClick={() => handleLaunchRole('student')}
           >
-            Launch Student Portal
+            {isAuthenticated ? 'Go to My Dashboard' : 'Sign In to Student Portal'}
           </RippleButton>
 
           <RippleButton
@@ -60,7 +66,7 @@ export const LandingPage: React.FC = () => {
             icon={<BarChart3 className="w-5 h-5" />}
             onClick={() => handleLaunchRole('admin')}
           >
-            Launch Admin Dashboard
+            {isAuthenticated ? 'Go to Admin Center' : 'Sign In to Admin Portal'}
           </RippleButton>
         </div>
 
@@ -68,7 +74,7 @@ export const LandingPage: React.FC = () => {
         <div className="pt-10 max-w-4xl mx-auto">
           <div className="p-4 rounded-2xl border border-slate-800 bg-slate-900/60 backdrop-blur-md">
             <p className="text-xs font-extrabold text-slate-400 uppercase tracking-wider mb-3">
-              SELECT CAMPUS PORTAL ROLE TO ACCESS SYSTEM:
+              SIGN IN TO ACCESS CAMPUS PORTAL BY ROLE:
             </p>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               <button
@@ -76,7 +82,7 @@ export const LandingPage: React.FC = () => {
                 className="flex items-center justify-center space-x-2 p-3 rounded-xl border border-blue-500/30 bg-blue-500/10 hover:bg-blue-500/20 text-blue-300 font-semibold text-xs transition-all hover:scale-105"
               >
                 <GraduationCap className="w-4 h-4" />
-                <span>Student Portal</span>
+                <span>Student Login</span>
               </button>
 
               <button
@@ -84,7 +90,7 @@ export const LandingPage: React.FC = () => {
                 className="flex items-center justify-center space-x-2 p-3 rounded-xl border border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 font-semibold text-xs transition-all hover:scale-105"
               >
                 <Wrench className="w-4 h-4" />
-                <span>Staff Technician</span>
+                <span>Staff Login</span>
               </button>
 
               <button
@@ -92,7 +98,7 @@ export const LandingPage: React.FC = () => {
                 className="flex items-center justify-center space-x-2 p-3 rounded-xl border border-amber-500/30 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 font-semibold text-xs transition-all hover:scale-105"
               >
                 <Building2 className="w-4 h-4" />
-                <span>Dept Admin</span>
+                <span>Admin Login</span>
               </button>
 
               <button

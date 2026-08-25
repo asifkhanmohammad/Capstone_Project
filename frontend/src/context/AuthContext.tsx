@@ -32,20 +32,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<UserSession | null>(() => {
     try {
       const stored = localStorage.getItem(STORAGE_KEY_USER);
-      return stored ? JSON.parse(stored) : {
-        id: 'usr-student-1',
-        name: 'Mohammad Asif Khan',
-        email: 'asif.khan@student.nriit.edu.in',
-        role: 'student',
-        department: 'Computer Science & Engineering',
-      };
+      return stored ? JSON.parse(stored) : null;
     } catch {
       return null;
     }
   });
 
   const [token, setToken] = useState<string | null>(() => {
-    return localStorage.getItem(STORAGE_KEY_TOKEN) || 'demo_active_session_token';
+    return localStorage.getItem(STORAGE_KEY_TOKEN) || null;
   });
 
   useEffect(() => {

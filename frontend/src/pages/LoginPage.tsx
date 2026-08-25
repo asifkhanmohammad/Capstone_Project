@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { useAuth, UserRole } from '../context/AuthContext';
 import { dataService } from '../services/dataService';
@@ -11,10 +11,20 @@ export const LoginPage: React.FC = () => {
   const location = useLocation();
   const { login } = useAuth();
 
-  const [activeTab, setActiveTab] = useState<UserRole>('student');
-  const [email, setEmail] = useState('asif.khan@student.nriit.edu.in');
-  const [password, setPassword] = useState('student123456');
+  const initialRole = (location.state as { role?: UserRole })?.role || 'student';
+  const [activeTab, setActiveTab] = useState<UserRole>(initialRole);
+  const [email, setEmail] = useState(
+    initialRole === 'staff'
+      ? 'ramesh.elec@nriit.edu.in'
+      : initialRole === 'admin' || initialRole === 'super_admin'
+      ? 'admin@nriit.edu.in'
+      : 'asif.khan@student.nriit.edu.in'
+  );
+  const [password, setPassword] = useState(
+    initialRole === 'staff' ? 'faculty123456' : initialRole === 'admin' || initialRole === 'super_admin' ? 'admin123456' : 'student123456'
+  );
   const [isLoading, setIsLoading] = useState(false);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
 
   const handleTabChange = (role: UserRole) => {
@@ -29,6 +39,17 @@ export const LoginPage: React.FC = () => {
     } else {
       setEmail('admin@nriit.edu.in');
       setPassword('admin123456');
+    }
+  };
+
+  const redirectAfterLogin = (userRole: UserRole) => {
+    const fromPath = (location.state as { from?: { pathname: string } })?.from?.pathname;
+    if (fromPath && !fromPath.includes('/login')) {
+      navigate(fromPath);
+    } else {
+      if (userRole === 'student') navigate('/student');
+      else if (userRole === 'staff') navigate('/staff');
+      else navigate('/admin');
     }
   };
 
@@ -48,19 +69,43 @@ export const LoginPage: React.FC = () => {
       login(data.user, data.token);
       dataService.setActiveRole(data.user.role);
       await dataService.syncWithBackend();
-
-      const fromPath = (location.state as { from?: { pathname: string } })?.from?.pathname;
-      if (fromPath && !fromPath.includes('/login')) {
-        navigate(fromPath);
-      } else {
-        if (data.user.role === 'student') navigate('/student');
-        else if (data.user.role === 'staff') navigate('/staff');
-        else navigate('/admin');
-      }
+      redirectAfterLogin(data.user.role);
     } catch (err: any) {
       setErrorMessage(err.message || 'Authentication failed. Please check backend service.');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  // Google OAuth Handler
+  const handleGoogleSignIn = async (overrideEmail?: string, overrideName?: string) => {
+    setErrorMessage('');
+    setIsGoogleLoading(true);
+
+    try {
+      const targetEmail = overrideEmail || prompt('Enter your Google Account email:', 'asif.khan@gmail.com');
+      if (!targetEmail) {
+        setIsGoogleLoading(false);
+        return;
+      }
+
+      const targetName = overrideName || targetEmail.split('@')[0].replace('.', ' ');
+
+      const data = await apiService.googleLogin({
+        email: targetEmail,
+        name: targetName,
+        picture: `https://ui-avatars.com/api/?name=${encodeURIComponent(targetName)}&background=2563eb&color=fff`,
+        role: activeTab,
+      });
+
+      login(data.user, data.token);
+      dataService.setActiveRole(data.user.role);
+      await dataService.syncWithBackend();
+      redirectAfterLogin(data.user.role);
+    } catch (err: any) {
+      setErrorMessage(err.message || 'Google Authentication failed. Please try again.');
+    } finally {
+      setIsGoogleLoading(false);
     }
   };
 
@@ -117,8 +162,43 @@ export const LoginPage: React.FC = () => {
           </button>
         </div>
 
-        {/* Login Form */}
-        <form onSubmit={handleLoginSubmit} className="space-y-4 pt-2">
+        {/* Google Authentication Section */}
+        <div className="space-y-3">
+          <button
+            type="button"
+            disabled={isGoogleLoading}
+            onClick={() => handleGoogleSignIn()}
+            className="w-full py-3 px-4 rounded-xl bg-white hover:bg-slate-100 text-slate-900 font-semibold text-sm transition-all flex items-center justify-center space-x-3 shadow-md border border-slate-200"
+          >
+            <svg className="w-5 h-5" viewBox="0 0 24 24">
+              <path
+                fill="#4285F4"
+                d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17z"
+              />
+              <path
+                fill="#34A853"
+                d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.11-6.72-4.96H1.29v3.15C3.26 21.3 7.31 24 12 24z"
+              />
+              <path
+                fill="#FBBC05"
+                d="M5.28 14.24c-.25-.72-.38-1.49-.38-2.24s.13-1.52.38-2.24V6.61H1.29C.47 8.24 0 10.06 0 12s.47 3.76 1.29 5.39l3.99-3.15z"
+              />
+              <path
+                fill="#EA4335"
+                d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.31 0 3.26 2.7 1.29 6.61l3.99 3.15c.95-2.85 3.6-4.96 6.72-4.96z"
+              />
+            </svg>
+            <span>{isGoogleLoading ? 'Connecting to Google...' : `Sign in with Google (${activeTab.toUpperCase()})`}</span>
+          </button>
+
+          <div className="relative flex items-center justify-center my-2">
+            <div className="border-t border-slate-800 w-full"></div>
+            <span className="bg-slate-900 px-3 text-[11px] font-medium text-slate-500 uppercase tracking-wider">or email login</span>
+          </div>
+        </div>
+
+        {/* Standard Email & Password Login Form */}
+        <form onSubmit={handleLoginSubmit} className="space-y-4">
           {errorMessage && (
             <div className="p-3 rounded-lg border border-red-500/40 bg-red-500/10 text-red-400 text-xs flex items-center space-x-2">
               <AlertCircle className="w-4 h-4 flex-shrink-0" />

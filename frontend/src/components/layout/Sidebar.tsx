@@ -1,6 +1,7 @@
 import React from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { dataService } from '../../services/dataService';
+import { useAuth } from '../../context/AuthContext';
 import {
   LayoutDashboard,
   PlusCircle,
@@ -23,7 +24,8 @@ interface SidebarProps {
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
-  const activeRole = dataService.getActiveRole();
+  const { user } = useAuth();
+  const activeRole = user?.role || dataService.getActiveRole();
   const location = useLocation();
 
   const studentNavItems = [

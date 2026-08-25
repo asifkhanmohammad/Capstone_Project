@@ -16,6 +16,7 @@ const userSchema = new mongoose.Schema(
     department_id: { type: String },
     department_name: { type: String },
     phone: { type: String },
+    password: { type: String, required: false },
     avatar: { type: String },
     avatar_url: { type: String },
     student_id_number: { type: String },
@@ -28,6 +29,7 @@ userSchema.set('toJSON', {
   transform: (doc, ret) => {
     delete ret._id;
     delete ret.__v;
+    delete ret.password;
     ret.full_name = ret.full_name || ret.name;
     ret.avatar_url = ret.avatar_url || ret.avatar;
     return ret;

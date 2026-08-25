@@ -1,5 +1,6 @@
 import express from 'express';
 import { Department } from '../models/Department.js';
+import { authenticateUser, requireRoles } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
@@ -13,8 +14,8 @@ router.get('/', async (req, res) => {
   }
 });
 
-// POST /api/departments - Create department in MongoDB
-router.post('/', async (req, res) => {
+// POST /api/departments - Create department in MongoDB (Admin Only)
+router.post('/', authenticateUser, requireRoles('admin', 'super_admin'), async (req, res) => {
   try {
     const { name, code, head_name, head_email, sla_target_hours, monthly_budget } = req.body;
     const id = `dept-${Date.now()}`;
@@ -34,8 +35,8 @@ router.post('/', async (req, res) => {
   }
 });
 
-// PUT /api/departments/:id - Update department in MongoDB
-router.put('/:id', async (req, res) => {
+// PUT /api/departments/:id - Update department in MongoDB (Admin Only)
+router.put('/:id', authenticateUser, requireRoles('admin', 'super_admin'), async (req, res) => {
   try {
     const updated = await Department.findOneAndUpdate(
       { id: req.params.id },
@@ -49,8 +50,8 @@ router.put('/:id', async (req, res) => {
   }
 });
 
-// DELETE /api/departments/:id - Delete department in MongoDB
-router.delete('/:id', async (req, res) => {
+// DELETE /api/departments/:id - Delete department in MongoDB (Admin Only)
+router.delete('/:id', authenticateUser, requireRoles('admin', 'super_admin'), async (req, res) => {
   try {
     const deleted = await Department.findOneAndDelete({ id: req.params.id });
     if (!deleted) return res.status(404).json({ error: 'Department not found' });
