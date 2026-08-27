@@ -13,6 +13,10 @@ import {
   AlertTriangle,
   Menu,
   X,
+  User,
+  Mail,
+  Phone,
+  Building,
 } from 'lucide-react';
 
 interface NavbarProps {
@@ -24,11 +28,22 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleSidebar, isSidebarOpen }
   const navigate = useNavigate();
   const { user, logout } = useAuth();
   const [showNotifMenu, setShowNotifMenu] = useState(false);
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
 
-  const currentUser = user || dataService.getActiveUser();
+  const userSession = user || dataService.getActiveUser();
+  const currentUser: any = userSession;
   const activeRole = currentUser.role || 'student';
   const notifications = dataService.getNotifications(currentUser.id);
   const unreadCount = notifications.filter((n) => !n.is_read).length;
+
+  const userAvatar =
+    currentUser.avatar_url ||
+    currentUser.avatar ||
+    (activeRole === 'student'
+      ? 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&w=400&q=80'
+      : activeRole === 'staff'
+      ? 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=400&q=80'
+      : 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=400&q=80');
 
   const handleLogout = () => {
     logout();
@@ -79,7 +94,10 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleSidebar, isSidebarOpen }
           {/* Notifications Dropdown */}
           <div className="relative">
             <button
-              onClick={() => setShowNotifMenu(!showNotifMenu)}
+              onClick={() => {
+                setShowNotifMenu(!showNotifMenu);
+                setShowProfileMenu(false);
+              }}
               className="relative p-2 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800 focus:outline-none transition-colors"
             >
               <Bell className="w-5 h-5" />
@@ -132,21 +150,90 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleSidebar, isSidebarOpen }
             )}
           </div>
 
-          {/* User Profile Info & Logout */}
-          <div className="flex items-center space-x-3 pl-2 border-l border-slate-800">
-            <div className="hidden lg:block text-left">
-              <p className="text-xs font-semibold text-white leading-tight">{currentUser.full_name}</p>
-              <p className="text-[10px] text-slate-400 leading-tight">{currentUser.email}</p>
-            </div>
-            
+          {/* User Profile Avatar & Interactive Popover */}
+          <div className="relative pl-2 border-l border-slate-800">
             <button
-              onClick={handleLogout}
-              className="p-2 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors flex items-center space-x-1"
-              title="Sign Out"
+              onClick={() => {
+                setShowProfileMenu(!showProfileMenu);
+                setShowNotifMenu(false);
+              }}
+              className="flex items-center space-x-3 p-1 rounded-xl hover:bg-slate-800/60 transition-colors focus:outline-none group"
+              title="Click to view full NRI profile"
             >
-              <LogOut className="w-5 h-5" />
-              <span className="hidden md:inline text-xs font-semibold">Logout</span>
+              <img
+                src={userAvatar}
+                alt={currentUser.full_name}
+                className="w-9 h-9 rounded-full object-cover border-2 border-blue-500/50 group-hover:border-blue-400 transition-colors shadow-sm"
+              />
+              <div className="hidden lg:block text-left">
+                <p className="text-xs font-semibold text-white leading-tight">{currentUser.full_name}</p>
+                <p className="text-[10px] text-slate-400 leading-tight">{currentUser.email}</p>
+              </div>
             </button>
+
+            {/* NRI Profile Popover Card */}
+            {showProfileMenu && (
+              <div className="absolute right-0 mt-3 w-80 rounded-2xl border border-slate-800 bg-slate-900 shadow-2xl p-4 z-50 animate-in fade-in slide-in-from-top-2">
+                <div className="flex items-start space-x-3 pb-3 border-b border-slate-800">
+                  <img
+                    src={userAvatar}
+                    alt={currentUser.full_name}
+                    className="w-14 h-14 rounded-full object-cover border-2 border-blue-500 shadow-md flex-shrink-0"
+                  />
+                  <div className="space-y-0.5 overflow-hidden">
+                    <span className="text-[10px] font-extrabold text-blue-400 uppercase tracking-wider block">
+                      NRI University Reference
+                    </span>
+                    <h4 className="text-sm font-bold text-white truncate">{currentUser.full_name}</h4>
+                    <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-semibold border ${currentBadge.bg}`}>
+                      {currentBadge.label}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="py-3 space-y-2 text-xs text-slate-300">
+                  <div className="flex items-center space-x-2.5">
+                    <Mail className="w-4 h-4 text-blue-400 flex-shrink-0" />
+                    <span className="truncate">{currentUser.email}</span>
+                  </div>
+                  <div className="flex items-center space-x-2.5">
+                    <Building className="w-4 h-4 text-purple-400 flex-shrink-0" />
+                    <span className="truncate">{currentUser.department_name || currentUser.department || 'Computer Science'}</span>
+                  </div>
+                  {currentUser.phone && (
+                    <div className="flex items-center space-x-2.5">
+                      <Phone className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+                      <span>{currentUser.phone}</span>
+                    </div>
+                  )}
+                  {currentUser.student_id_number && (
+                    <div className="flex items-center space-x-2.5">
+                      <User className="w-4 h-4 text-amber-400 flex-shrink-0" />
+                      <span>NRI ID: {currentUser.student_id_number}</span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="pt-2 border-t border-slate-800 flex items-center justify-between">
+                  {activeRole === 'admin' && (
+                    <Link
+                      to="/admin/staff"
+                      onClick={() => setShowProfileMenu(false)}
+                      className="text-[11px] font-semibold text-blue-400 hover:underline"
+                    >
+                      Faculty Directory
+                    </Link>
+                  )}
+                  <button
+                    onClick={handleLogout}
+                    className="ml-auto px-3 py-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 font-semibold text-xs transition-colors flex items-center space-x-1.5 border border-rose-500/20"
+                  >
+                    <LogOut className="w-3.5 h-3.5" />
+                    <span>Sign Out</span>
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>

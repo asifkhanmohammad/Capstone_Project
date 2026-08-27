@@ -10,6 +10,8 @@ export interface UserSession {
   role: UserRole;
   department?: string;
   department_name?: string;
+  phone?: string;
+  student_id_number?: string;
   avatar?: string;
   avatar_url?: string;
 }

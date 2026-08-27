@@ -22,31 +22,40 @@ export const DEMO_PROFILES: Record<string, UserProfile> = {
     role: 'student',
     department_name: 'Computer Science & Engineering',
     student_id_number: '217W1A0501',
+    phone: '+91 98765 43210',
+    avatar_url: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&w=400&q=80',
     created_at: new Date().toISOString(),
   },
   staff: {
     id: 'usr-staff-1',
-    full_name: 'K. Ramesh (Electrical Lead)',
+    full_name: 'Sri Ch. Satyanarayana (Senior Electrical Lead)',
     email: 'ramesh.elec@nriit.edu.in',
     role: 'staff',
     department_name: 'Electrical & Power Maintenance',
     department_id: 'dept-1',
+    phone: '+91 98765 43211',
+    avatar_url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=400&q=80',
     created_at: new Date().toISOString(),
   },
   admin: {
     id: 'usr-admin-1',
-    full_name: 'Dr. Principal Admin',
+    full_name: 'Dr. K.V. Sambasiva Rao (HOD, CSE)',
     email: 'admin@nriit.edu.in',
     role: 'admin',
-    department_name: 'Administration',
+    department_name: 'IT Infrastructure & Campus Wi-Fi',
+    department_id: 'dept-3',
+    phone: '+91 94401 23456',
+    avatar_url: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=400&q=80',
     created_at: new Date().toISOString(),
   },
   super_admin: {
-    id: 'usr-admin-1',
-    full_name: 'Dr. Principal Admin',
-    email: 'admin@nriit.edu.in',
+    id: 'usr-superadmin-1',
+    full_name: 'Dr. C. Naga Bhaskar (Principal & Campus Director)',
+    email: 'principal@nriit.edu.in',
     role: 'super_admin',
-    department_name: 'Administration',
+    department_name: 'College Administration & Governance',
+    phone: '+91 94400 11223',
+    avatar_url: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&w=400&q=80',
     created_at: new Date().toISOString(),
   },
 };
@@ -116,13 +125,18 @@ class DataService {
       const storedUser = localStorage.getItem('ccsm_auth_user_v1');
       if (storedUser) {
         const u = JSON.parse(storedUser);
+        const fallbackDemo = DEMO_PROFILES[u.role || 'student'] || DEMO_PROFILES.student;
         return {
-          id: u.id || 'usr-student-1',
-          full_name: u.full_name || u.name || 'Mohammad Asif Khan',
-          email: u.email || 'asif.khan@student.nriit.edu.in',
-          role: u.role || 'student',
-          department_name: u.department || u.department_name || 'Computer Science & Engineering',
-          created_at: new Date().toISOString(),
+          id: u.id || fallbackDemo.id,
+          full_name: u.full_name || u.name || fallbackDemo.full_name,
+          email: u.email || fallbackDemo.email,
+          role: u.role || fallbackDemo.role,
+          department_name: u.department || u.department_name || fallbackDemo.department_name,
+          department_id: u.department_id || fallbackDemo.department_id,
+          phone: u.phone || fallbackDemo.phone,
+          student_id_number: u.student_id_number || fallbackDemo.student_id_number,
+          avatar_url: u.avatar_url || u.avatar || fallbackDemo.avatar_url,
+          created_at: u.created_at || new Date().toISOString(),
         };
       }
     } catch {

@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate, Link, useLocation } from 'react-router-dom';
+import React, { useState } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth, UserRole } from '../context/AuthContext';
 import { dataService } from '../services/dataService';
 import { apiService } from '../services/api';
 import { RippleButton } from '../components/ui/RippleButton';
-import { ShieldCheck, GraduationCap, UserCheck, Building2, Lock, ArrowRight, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { ShieldCheck, GraduationCap, UserCheck, Building2, ArrowRight, AlertCircle, CheckCircle2, Mail, Sparkles } from 'lucide-react';
 
 export const LoginPage: React.FC = () => {
   const navigate = useNavigate();
@@ -13,17 +13,13 @@ export const LoginPage: React.FC = () => {
 
   const initialRole = (location.state as { role?: UserRole })?.role || 'student';
   const [activeTab, setActiveTab] = useState<UserRole>(initialRole);
-  const [email, setEmail] = useState(
+  const [googleEmail, setGoogleEmail] = useState(
     initialRole === 'staff'
       ? 'ramesh.elec@nriit.edu.in'
       : initialRole === 'admin' || initialRole === 'super_admin'
       ? 'admin@nriit.edu.in'
       : 'asif.khan@student.nriit.edu.in'
   );
-  const [password, setPassword] = useState(
-    initialRole === 'staff' ? 'faculty123456' : initialRole === 'admin' || initialRole === 'super_admin' ? 'admin123456' : 'student123456'
-  );
-  const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
 
@@ -31,14 +27,11 @@ export const LoginPage: React.FC = () => {
     setActiveTab(role);
     setErrorMessage('');
     if (role === 'student') {
-      setEmail('asif.khan@student.nriit.edu.in');
-      setPassword('student123456');
+      setGoogleEmail('asif.khan@student.nriit.edu.in');
     } else if (role === 'staff') {
-      setEmail('ramesh.elec@nriit.edu.in');
-      setPassword('faculty123456');
+      setGoogleEmail('ramesh.elec@nriit.edu.in');
     } else {
-      setEmail('admin@nriit.edu.in');
-      setPassword('admin123456');
+      setGoogleEmail('admin@nriit.edu.in');
     }
   };
 
@@ -53,48 +46,31 @@ export const LoginPage: React.FC = () => {
     }
   };
 
-  const handleLoginSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setErrorMessage('');
-
-    if (!email || !password) {
-      setErrorMessage('Please enter both email address and password.');
-      return;
-    }
-
-    setIsLoading(true);
-
-    try {
-      const data = await apiService.login(email, password, activeTab);
-      login(data.user, data.token);
-      dataService.setActiveRole(data.user.role);
-      await dataService.syncWithBackend();
-      redirectAfterLogin(data.user.role);
-    } catch (err: any) {
-      setErrorMessage(err.message || 'Authentication failed. Please check backend service.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Google OAuth Handler
-  const handleGoogleSignIn = async (overrideEmail?: string, overrideName?: string) => {
+  // Dedicated Google OAuth & Authentication Handler
+  const handleGoogleSignIn = async (targetEmailInput?: string) => {
     setErrorMessage('');
     setIsGoogleLoading(true);
 
     try {
-      const targetEmail = overrideEmail || prompt('Enter your Google Account email:', 'asif.khan@gmail.com');
-      if (!targetEmail) {
+      const emailToUse = (targetEmailInput || googleEmail || 'user@gmail.com').trim();
+      if (!emailToUse || !emailToUse.includes('@')) {
+        setErrorMessage('Please enter a valid Google account email address (e.g., user@gmail.com).');
         setIsGoogleLoading(false);
         return;
       }
 
-      const targetName = overrideName || targetEmail.split('@')[0].replace('.', ' ');
+      const targetName = emailToUse.split('@')[0].replace('.', ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+      const defaultPicture =
+        activeTab === 'student'
+          ? 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&w=400&q=80'
+          : activeTab === 'staff'
+          ? 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=400&q=80'
+          : 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=400&q=80';
 
       const data = await apiService.googleLogin({
-        email: targetEmail,
+        email: emailToUse,
         name: targetName,
-        picture: `https://ui-avatars.com/api/?name=${encodeURIComponent(targetName)}&background=2563eb&color=fff`,
+        picture: defaultPicture,
         role: activeTab,
       });
 
@@ -112,12 +88,13 @@ export const LoginPage: React.FC = () => {
   return (
     <div className="min-h-screen flex items-center justify-center bg-slate-950 px-4 py-12">
       <div className="w-full max-w-md space-y-6 rounded-2xl border border-slate-800 bg-slate-900/90 backdrop-blur-md p-8 shadow-2xl">
+        {/* Header Header & Branding */}
         <div className="text-center space-y-2">
           <div className="w-12 h-12 rounded-xl bg-blue-600 flex items-center justify-center mx-auto text-white shadow-lg shadow-blue-900/40">
             <ShieldCheck className="w-7 h-7" />
           </div>
-          <h2 className="text-2xl font-bold text-white tracking-tight">Campus Authorization Login</h2>
-          <p className="text-xs text-slate-400">Select your role to access Complaint & Service Management</p>
+          <h2 className="text-2xl font-bold text-white tracking-tight">Campus Authorization Portal</h2>
+          <p className="text-xs text-slate-400">Sign in securely using Google Authentication</p>
         </div>
 
         {/* Role Selector Tabs */}
@@ -162,15 +139,87 @@ export const LoginPage: React.FC = () => {
           </button>
         </div>
 
-        {/* Google Authentication Section */}
-        <div className="space-y-3">
+        {/* NRI University Profile Reference Card */}
+        <div className="p-3.5 rounded-xl border border-slate-800 bg-slate-950/60 flex items-center space-x-3">
+          <img
+            src={
+              activeTab === 'student'
+                ? 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&w=400&q=80'
+                : activeTab === 'staff'
+                ? 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=400&q=80'
+                : 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=400&q=80'
+            }
+            alt="NRI Faculty/Admin Profile"
+            className="w-12 h-12 rounded-xl object-cover border border-blue-500/40 shadow-sm flex-shrink-0"
+          />
+          <div className="text-left overflow-hidden">
+            <span className="text-[10px] font-extrabold uppercase tracking-wider text-blue-400 block">
+              {activeTab === 'student' ? 'NRI Student Reference' : activeTab === 'staff' ? 'NRI Faculty Reference' : 'NRI Admin Reference'}
+            </span>
+            <p className="text-xs font-bold text-white truncate">
+              {activeTab === 'student'
+                ? 'Mohammad Asif Khan (CSE)'
+                : activeTab === 'staff'
+                ? 'Sri Ch. Satyanarayana (Electrical Lead)'
+                : 'Dr. K.V. Sambasiva Rao (HOD, CSE)'}
+            </p>
+            <p className="text-[11px] text-slate-400 truncate">
+              {activeTab === 'student'
+                ? 'asif.khan@student.nriit.edu.in'
+                : activeTab === 'staff'
+                ? 'ramesh.elec@nriit.edu.in'
+                : 'admin@nriit.edu.in'}
+            </p>
+          </div>
+        </div>
+
+        {/* Exclusive Google Authentication Form */}
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            handleGoogleSignIn();
+          }}
+          className="space-y-4"
+        >
+          {errorMessage && (
+            <div className="p-3 rounded-lg border border-red-500/40 bg-red-500/10 text-red-400 text-xs flex items-center space-x-2">
+              <AlertCircle className="w-4 h-4 flex-shrink-0" />
+              <span>{errorMessage}</span>
+            </div>
+          )}
+
+          <div>
+            <label className="block text-xs font-semibold text-slate-300 mb-1 flex items-center justify-between">
+              <span>Google Account Email</span>
+              <span className="text-[10px] text-slate-500">Any @gmail.com or custom domain</span>
+            </label>
+            <div className="relative">
+              <input
+                type="email"
+                required
+                value={googleEmail}
+                onChange={(e) => setGoogleEmail(e.target.value)}
+                placeholder="your.name@gmail.com"
+                className="w-full pl-9 pr-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-sm focus:outline-none focus:border-blue-500 transition-colors"
+              />
+              <Mail className="w-4 h-4 text-slate-500 absolute left-3 top-3" />
+            </div>
+          </div>
+
+          <div className="p-3 rounded-xl border border-slate-800/80 bg-slate-950/40 text-[11px] text-slate-400 flex items-start space-x-2">
+            <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0 mt-0.5" />
+            <span>
+              Google Single Sign-On: Authenticating automatically grants full portal access under {activeTab.toUpperCase()} role permissions.
+            </span>
+          </div>
+
+          {/* Primary Google Sign-In Action */}
           <button
-            type="button"
+            type="submit"
             disabled={isGoogleLoading}
-            onClick={() => handleGoogleSignIn()}
-            className="w-full py-3 px-4 rounded-xl bg-white hover:bg-slate-100 text-slate-900 font-semibold text-sm transition-all flex items-center justify-center space-x-3 shadow-md border border-slate-200"
+            className="w-full py-3.5 px-4 rounded-xl bg-white hover:bg-slate-100 text-slate-900 font-bold text-sm transition-all flex items-center justify-center space-x-3 shadow-lg border border-slate-200 group"
           >
-            <svg className="w-5 h-5" viewBox="0 0 24 24">
+            <svg className="w-5 h-5 flex-shrink-0" viewBox="0 0 24 24">
               <path
                 fill="#4285F4"
                 d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17z"
@@ -188,76 +237,29 @@ export const LoginPage: React.FC = () => {
                 d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.31 0 3.26 2.7 1.29 6.61l3.99 3.15c.95-2.85 3.6-4.96 6.72-4.96z"
               />
             </svg>
-            <span>{isGoogleLoading ? 'Connecting to Google...' : `Sign in with Google (${activeTab.toUpperCase()})`}</span>
+            <span>{isGoogleLoading ? 'Authenticating with Google...' : `Sign in with Google (${activeTab.toUpperCase()})`}</span>
+            <ArrowRight className="w-4 h-4 text-slate-500 group-hover:translate-x-0.5 transition-transform" />
           </button>
 
-          <div className="relative flex items-center justify-center my-2">
-            <div className="border-t border-slate-800 w-full"></div>
-            <span className="bg-slate-900 px-3 text-[11px] font-medium text-slate-500 uppercase tracking-wider">or email login</span>
-          </div>
-        </div>
-
-        {/* Standard Email & Password Login Form */}
-        <form onSubmit={handleLoginSubmit} className="space-y-4">
-          {errorMessage && (
-            <div className="p-3 rounded-lg border border-red-500/40 bg-red-500/10 text-red-400 text-xs flex items-center space-x-2">
-              <AlertCircle className="w-4 h-4 flex-shrink-0" />
-              <span>{errorMessage}</span>
-            </div>
-          )}
-
-          <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1">
-              {activeTab === 'student' ? 'Student Institutional Email' : activeTab === 'staff' ? 'Faculty / Staff Email' : 'Administrator Email'}
-            </label>
-            <input
-              type="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder={activeTab === 'student' ? 'student@nriit.edu.in' : 'faculty@nriit.edu.in'}
-              className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-sm focus:outline-none focus:border-blue-500 transition-colors"
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1">Password</label>
-            <div className="relative">
-              <input
-                type="password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••••••"
-                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-sm focus:outline-none focus:border-blue-500 transition-colors"
-              />
-              <Lock className="w-4 h-4 text-slate-500 absolute right-3.5 top-3" />
-            </div>
-          </div>
-
-          <div className="p-3 rounded-xl border border-slate-800/80 bg-slate-950/40 text-[11px] text-slate-400 flex items-start space-x-2">
-            <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0 mt-0.5" />
-            <span>
-              Authorized Access Only: Logging in grants access to the portal under {activeTab.toUpperCase()} permissions.
-            </span>
-          </div>
-
+          {/* Quick 1-Click Google Sign-In with Reference Profile */}
           <RippleButton
-            type="submit"
-            disabled={isLoading}
-            className="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded-xl text-sm transition-all flex items-center justify-center space-x-2 shadow-lg shadow-blue-900/30"
+            type="button"
+            disabled={isGoogleLoading}
+            onClick={() => handleGoogleSignIn(
+              activeTab === 'student'
+                ? 'asif.khan@student.nriit.edu.in'
+                : activeTab === 'staff'
+                ? 'ramesh.elec@nriit.edu.in'
+                : 'admin@nriit.edu.in'
+            )}
+            className="w-full py-2.5 bg-slate-800 hover:bg-slate-700 text-blue-400 font-semibold rounded-xl text-xs transition-all flex items-center justify-center space-x-2 border border-slate-700/80"
           >
-            <span>{isLoading ? 'Authenticating...' : `Sign In to ${activeTab.toUpperCase()} Portal`}</span>
-            <ArrowRight className="w-4 h-4" />
+            <Sparkles className="w-3.5 h-3.5 text-blue-400" />
+            <span>
+              1-Click Google Login as {activeTab === 'student' ? 'Mohammad Asif Khan' : activeTab === 'staff' ? 'Ch. Satyanarayana' : 'Dr. K.V. Sambasiva Rao'}
+            </span>
           </RippleButton>
         </form>
-
-        <div className="text-center pt-2 text-xs text-slate-500">
-          Need a student or faculty account?{' '}
-          <Link to="/register" className="text-blue-400 hover:underline font-medium">
-            Register here
-          </Link>
-        </div>
       </div>
     </div>
   );
