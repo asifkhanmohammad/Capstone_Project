@@ -51,18 +51,26 @@ export const StudentDashboard: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* Welcome Banner */}
-      <div className="rounded-2xl bg-gradient-to-r from-blue-900/40 via-indigo-900/30 to-slate-900 border border-blue-500/20 p-6 md:p-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-        <div className="space-y-2">
-          <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs font-semibold">
+      {/* NRI University Student Portal Banner */}
+      <div className="relative rounded-2xl border border-slate-800 overflow-hidden bg-slate-900 p-6 md:p-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 shadow-xl">
+        <div
+          className="absolute inset-0 bg-cover bg-center opacity-15 pointer-events-none"
+          style={{
+            backgroundImage: `url('https://images.unsplash.com/photo-1541829070764-84a7d30dd3f3?auto=format&fit=crop&w=1200&q=80')`,
+          }}
+        />
+        <div className="absolute inset-0 bg-gradient-to-r from-slate-950 via-slate-950/80 to-slate-950/60 pointer-events-none" />
+
+        <div className="relative z-10 space-y-2">
+          <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/30 text-blue-400 text-xs font-extrabold uppercase tracking-wider">
             <Sparkles className="w-3.5 h-3.5" />
-            <span>Student Command Portal</span>
+            <span>NRI University Student Portal</span>
           </div>
-          <h1 className="text-2xl md:text-3xl font-extrabold text-white">
-            Welcome Back, {currentUser.full_name.split(' ')[0]} 👋
+          <h1 className="text-2xl md:text-3xl font-black text-white">
+            Welcome back, {currentUser.full_name.split(' ')[0]} 👋
           </h1>
           <p className="text-xs md:text-sm text-slate-300">
-            Submit new complaints, track real-time resolution timelines, and request campus services.
+            Manage your complaints and campus service requests from one place.
           </p>
         </div>
 

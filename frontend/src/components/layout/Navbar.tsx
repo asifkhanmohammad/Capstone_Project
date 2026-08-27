@@ -76,8 +76,8 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleSidebar, isSidebarOpen }
               <ShieldCheck className="w-5 h-5 text-white" />
             </div>
             <div>
-              <span className="font-extrabold text-base md:text-lg tracking-tight bg-gradient-to-r from-white via-slate-100 to-slate-400 bg-clip-text text-transparent">
-                CAMPUS COMPLAINT & SERVICE MANAGEMENT
+              <span className="font-black text-sm md:text-base tracking-tight bg-gradient-to-r from-white via-slate-100 to-slate-300 bg-clip-text text-transparent">
+                NRI UNIVERSITY STUDENT SERVICES
               </span>
             </div>
           </Link>

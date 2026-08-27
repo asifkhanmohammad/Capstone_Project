@@ -1,19 +1,37 @@
 import React from 'react';
 import { DEMO_PROFILES } from '../../services/mockData';
 import { GlassCard } from '../../components/ui/GlassCard';
-import { Users, Phone, Mail, ShieldCheck, Award } from 'lucide-react';
+import { Users, Phone, Mail, ShieldCheck, Award, GraduationCap } from 'lucide-react';
 
 export const StaffManager: React.FC = () => {
+  const nriSchools = [
+    'School of Computer Studies',
+    'School of Engineering',
+    'School of Pharmaceutical Sciences',
+    'School of Science, Humanities & Mgmt',
+    'School of Paramedical & Allied Health',
+  ];
+
   const facultyAndStaff = [
-    DEMO_PROFILES.super_admin,
-    DEMO_PROFILES.admin,
-    DEMO_PROFILES.staff,
+    {
+      ...DEMO_PROFILES.super_admin,
+      school: 'University Administration',
+    },
+    {
+      ...DEMO_PROFILES.admin,
+      school: 'School of Computer Studies',
+    },
+    {
+      ...DEMO_PROFILES.staff,
+      school: 'School of Engineering',
+    },
     {
       id: 'usr-staff-2',
       email: 'narayana.gl@nriit.edu.in',
       full_name: 'Dr. G.L. Narayana (Professor & HOD, Civil)',
       role: 'admin' as const,
       department_name: 'Plumbing & Civil Infrastructure',
+      school: 'School of Engineering',
       phone: '+91 94405 67890',
       avatar_url: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=400&q=80',
       created_at: '2026-01-10T09:00:00.000Z',
@@ -24,6 +42,7 @@ export const StaffManager: React.FC = () => {
       full_name: 'Dr. R. Vijay Krishna (Professor & HOD, EEE)',
       role: 'admin' as const,
       department_name: 'Electrical & Power Maintenance',
+      school: 'School of Engineering',
       phone: '+91 94401 88776',
       avatar_url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80',
       created_at: '2026-01-10T09:00:00.000Z',
@@ -34,6 +53,7 @@ export const StaffManager: React.FC = () => {
       full_name: 'Prof. N.V. Surendra Babu (HOD, ECE)',
       role: 'admin' as const,
       department_name: 'Sanitation & Hygiene Services',
+      school: 'School of Engineering',
       phone: '+91 94402 44556',
       avatar_url: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=400&q=80',
       created_at: '2026-01-10T09:00:00.000Z',
@@ -44,6 +64,7 @@ export const StaffManager: React.FC = () => {
       full_name: 'Sri K. Sreenivasa Rao (Senior IT Network Lead)',
       role: 'staff' as const,
       department_name: 'IT Infrastructure & Campus Wi-Fi',
+      school: 'School of Computer Studies',
       phone: '+91 94402 11223',
       avatar_url: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=400&q=80',
       created_at: '2026-01-10T09:00:00.000Z',
@@ -54,6 +75,7 @@ export const StaffManager: React.FC = () => {
       full_name: 'Sri M. Venkateswara Rao (Sanitation Supervisor)',
       role: 'staff' as const,
       department_name: 'Sanitation & Hygiene Services',
+      school: 'University Facilities & Services',
       phone: '+91 94403 33445',
       avatar_url: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&w=400&q=80',
       created_at: '2026-01-10T09:00:00.000Z',
@@ -64,18 +86,34 @@ export const StaffManager: React.FC = () => {
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
-          <h1 className="text-2xl md:text-3xl font-extrabold text-white flex items-center space-x-2">
+          <h1 className="text-2xl md:text-3xl font-black text-white flex items-center space-x-2">
             <Users className="w-7 h-7 text-emerald-400" />
             <span>NRI University Faculty & Staff Directory</span>
           </h1>
           <p className="text-xs md:text-sm text-slate-400">
-            Verified academic leaders, department HODs, and maintenance supervisors at NRI Institute of Technology.
+            Verified academic leaders, department HODs, and maintenance supervisors across NRI University schools.
           </p>
         </div>
-        <div className="flex items-center space-x-2 px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800 text-xs font-semibold text-blue-400">
+        <div className="flex items-center space-x-2 px-3.5 py-2 rounded-xl bg-slate-900 border border-slate-800 text-xs font-bold text-blue-400">
           <ShieldCheck className="w-4 h-4 text-blue-400" />
-          <span>{facultyAndStaff.length} Verified Profiles</span>
+          <span>{facultyAndStaff.length} Verified Faculty Profiles</span>
         </div>
+      </div>
+
+      {/* NRI Academic Schools Ribbon */}
+      <div className="p-3 rounded-2xl bg-slate-950 border border-slate-800 flex items-center space-x-2 overflow-x-auto">
+        <span className="text-[10px] font-extrabold uppercase text-slate-500 tracking-wider flex-shrink-0 px-2">
+          NRI Schools:
+        </span>
+        {nriSchools.map((sch, i) => (
+          <span
+            key={i}
+            className="flex-shrink-0 px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-800 text-[11px] font-semibold text-slate-300 flex items-center space-x-1"
+          >
+            <GraduationCap className="w-3 h-3 text-blue-400" />
+            <span>{sch}</span>
+          </span>
+        ))}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
@@ -91,9 +129,12 @@ export const StaffManager: React.FC = () => {
             </div>
 
             <div>
+              <span className="inline-block px-2 py-0.5 rounded text-[10px] font-bold bg-blue-500/10 text-blue-400 border border-blue-500/20 mb-1">
+                {st.school}
+              </span>
               <h3 className="font-bold text-white text-base leading-snug">{st.full_name}</h3>
-              <p className="text-xs text-blue-400 font-semibold mt-1 flex items-center justify-center space-x-1">
-                <Award className="w-3.5 h-3.5 text-blue-400" />
+              <p className="text-xs text-emerald-400 font-semibold mt-1 flex items-center justify-center space-x-1">
+                <Award className="w-3.5 h-3.5 text-emerald-400" />
                 <span>{st.department_name}</span>
               </p>
             </div>

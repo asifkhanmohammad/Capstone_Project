@@ -117,18 +117,18 @@ export const AdminDashboard: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header Banner */}
-      <div className="rounded-2xl bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 border border-indigo-500/20 p-6 md:p-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+      {/* NRI University Administration Banner */}
+      <div className="rounded-2xl bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 border border-indigo-500/20 p-6 md:p-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 shadow-xl">
         <div className="space-y-2">
-          <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-xs font-semibold">
+          <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/30 text-indigo-400 text-xs font-extrabold uppercase tracking-wider">
             <ShieldCheck className="w-3.5 h-3.5" />
-            <span>Executive Operations Control Center</span>
+            <span>NRI University Central Governance</span>
           </div>
-          <h1 className="text-2xl md:text-3xl font-extrabold text-white">
-            Campus Executive Admin Dashboard 📊
+          <h1 className="text-2xl md:text-3xl font-black text-white">
+            NRI University Administration Portal 📊
           </h1>
           <p className="text-xs md:text-sm text-slate-300">
-            Real-time complaint tracking, department workload metrics, SLA compliance, and analytical forecasts.
+            Real-time complaint tracking, department workload metrics, SLA compliance, and campus operations analytics.
           </p>
         </div>
 

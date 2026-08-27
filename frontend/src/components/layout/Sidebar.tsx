@@ -108,13 +108,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
           </div>
 
           {/* University Portal Status Badge */}
-          <div className="p-3 rounded-xl border border-slate-800 bg-slate-900/40 text-center space-y-1">
-            <div className="flex items-center justify-center space-x-1 text-[11px] font-bold text-blue-400">
+          <div className="p-3 rounded-xl border border-slate-800 bg-slate-900/60 text-center space-y-1">
+            <div className="flex items-center justify-center space-x-1.5 text-[11px] font-extrabold text-blue-400 uppercase tracking-wider">
               <ShieldCheck className="w-3.5 h-3.5" />
-              <span>NRI Institute System</span>
+              <span>NRI University System</span>
             </div>
-            <p className="text-[10px] text-slate-500">
-              Centralized Campus Management
+            <p className="text-[10px] text-slate-400 font-medium">
+              Centralized Campus Support
             </p>
           </div>
         </div>
